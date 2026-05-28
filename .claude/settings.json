@@ -3,7 +3,13 @@
     "allow": [
       "Bash(python3 -m http.server 8080)",
       "Bash(echo \"PID=$!\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/)",
+      "Read(//Users/rich/Library/CloudStorage/GoogleDrive-rjmellish@gmail.com/My Drive/Development/voice-pa/info/AI Personal Assistant/**)",
+      "Bash(find \"/Users/rich/Library/CloudStorage/GoogleDrive-rjmellish@gmail.com/My Drive/Development/voice-pa\" -name \"*.jsx\" | head -30)",
+      "Read(//Users/rich/Library/CloudStorage/GoogleDrive-rjmellish@gmail.com/My Drive/Development/voice-pa/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/rich/Library/CloudStorage/GoogleDrive-rjmellish@gmail.com/My Drive/Development/voice-pa/review-app"
     ]
   }
 }
