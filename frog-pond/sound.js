@@ -88,6 +88,8 @@
       mel.forEach((f, i) => tone('square', f, null, t + i * .25, .2, .06));
       [131, 196, 165, 196].forEach((f, i) => { for (let j = 0; j < 4; j++) tone('triangle', f, null, t + (i * 4 + j) * .25, .18, .14); });
     },
+    bong(t) { tone('sine', 196, null, t, 2.2, .35); tone('sine', 392, null, t, 1.4, .1); tone('sine', 588, null, t, .8, .05); },
+    brr(t) { for (let i = 0; i < 10; i++) hiss(t + i * .06, .03, 'bandpass', 2600, null, .22, 4, .002); },
     buzz(t) { const o = tone('sawtooth', 210, 230, t, .6, .05); wobble(o, t, .6, 9, 25); }
   };
 

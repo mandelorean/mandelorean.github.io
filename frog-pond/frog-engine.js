@@ -223,7 +223,7 @@
       return g;
     }
 
-    let pad = null, padTop = null;
+    let pad = null, padTop = null, sceneHook = null;
     if (pal.pad !== null) {
       // a lily pad has a notch cut out of it; put it at the back where it won't hide the frog
       const notch = opts.padNotch ? .42 : 0, start = 3.55 + notch / 2, len = Math.PI * 2 - notch;
@@ -331,6 +331,7 @@
         const p = Math.min(1, k.t / k.dur); k.fn(p, dt);
         if (p >= 1) { tasks.splice(i--, 1); k.done && k.done(); }
       }
+      if (sceneHook) sceneHook(dt);
       const kk = 1 - Math.exp(-dt * 4);
       for (const q in tgt) cur[q] += (tgt[q] - cur[q]) * kk;
       lookCur.x += (look.x - lookCur.x) * (1 - Math.exp(-dt * 8));
@@ -672,6 +673,92 @@
       'goldfish', 'duckling', 'butterfly', 'bee_friend', 'hedgehog', 'babyfrog'];
     MORE.forEach(k => { extras[k] = buildMore(k); });
     let wind = 10, lilyOpen = 1, lilyOpenCur = 1, busyToy = null;
+
+    // ---------- Places: how the frog reacts to each background ----------
+    let sceneMode = 'pond';
+    const PAD_TINT = { arctic: [0xd8eef8, 0xeaf7fd], space: [0x8d939c, 0xa4aab3], candy: [0xff9fc9, 0xffc2dd], spooky: [0x2c4a2c, 0x35583a], desert: [0x6f9a3a, 0x86b04a] };
+    function applyPadColour() {
+      if (!pad) return;
+      const big = pad.userData.big, tint = PAD_TINT[sceneMode];
+      const c = tint || (big ? [0x2f8a3a, 0x3fa04a] : [pal.pad, pal.padTop]);
+      pad.material.color.setHex(c[0]); padTop.material.color.setHex(c[1]);
+    }
+    // moustaches for Paris: one sized for the frog, one for the tadpole
+    function buildMoustache() {
+      const g = new T.Group(), blk = mat(0x1b1b22, { roughness: .4 });
+      [-1, 1].forEach(s => {
+        const half = sph(.1, blk, 1.7, .55, .7, s * .13, 0, 0); half.rotation.z = s * -.25; g.add(half);
+        const curl = new T.Mesh(new T.TorusGeometry(.05, .022, 8, 16, Math.PI * 1.4), blk); curl.position.set(s * .28, .05, -.01); curl.rotation.z = s > 0 ? -.4 : Math.PI + .4; g.add(curl);
+      });
+      g.visible = false; return g;
+    }
+    const tache = { frog: buildMoustache(), tad: buildMoustache() };
+    tache.frog.position.set(0, 1.27, .93); tache.frog.rotation.x = -.35; creatures.frog.g.add(tache.frog);
+    tache.tad.position.set(0, 1.03, .74); tache.tad.scale.setScalar(.58); tache.tad.rotation.x = -.2; creatures.tad.g.add(tache.tad);
+    // a glass space bubble that goes over the whole frog
+    const bubbleHelmet = new T.Group(); holder.add(bubbleHelmet); bubbleHelmet.visible = false;
+    { const glass = new T.MeshPhysicalMaterial({ color: 0xdff4ff, transparent: true, opacity: .16, roughness: 0, clearcoat: 1, side: T.DoubleSide });
+      const dome = new T.Mesh(new T.SphereGeometry(1.6, 40, 24), glass); dome.position.y = 1.0; bubbleHelmet.add(dome);
+      const ring = new T.Mesh(new T.TorusGeometry(1.45, .1, 12, 48), mat(0xf4f6fa, { metalness: .3 })); ring.rotation.x = Math.PI / 2; ring.position.y = .1; bubbleHelmet.add(ring);
+      bubbleHelmet.add(sph(.08, mat(0xff5c5c, { roughness: .2 }), 1, 1, 1, 0, 2.62, 0)); }
+    // disco mirrorball with coloured lights, and spooky pumpkins
+    const disco = new T.Group(); disco.visible = false; scene.add(disco);
+    const mball = new T.Mesh(new T.IcosahedronGeometry(.34, 2), new T.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 1, roughness: .15, flatShading: true }));
+    mball.position.set(1.25, 2.85, -.4); disco.add(mball);
+    { const cord = new T.Mesh(new T.CylinderGeometry(.01, .01, 1.4, 6), mat(0x888888)); cord.position.set(1.25, 3.7, -.4); disco.add(cord); }
+    const discoLights = [0xff3fa4, 0x3fd9ff, 0xffe14d].map(col => { const l = new T.PointLight(col, 1.1, 6); disco.add(l); return l; });
+    const pumpkins = new T.Group(); pumpkins.visible = false; scene.add(pumpkins);
+    [[1.5, .95, 1], [-1.6, .15, .8]].forEach(([x, z, s]) => {
+      const p = new T.Group(); p.position.set(x, PAD_Y, z); p.scale.setScalar(s); p.rotation.y = -x * .3; pumpkins.add(p);
+      for (let i = 0; i < 6; i++) { const seg = sph(.2, mat(0xff8a1f, { roughness: .5 }), .55, .82, 1, Math.cos(i / 6 * Math.PI * 2) * .1, .17, Math.sin(i / 6 * Math.PI * 2) * .1); seg.rotation.y = i / 6 * Math.PI * 2; p.add(seg); }
+      const stem = new T.Mesh(new T.CylinderGeometry(.03, .04, .1, 8), mat(0x4c7a2a)); stem.position.y = .35; p.add(stem);
+      const glow = new T.MeshBasicMaterial({ color: 0xffd23f });
+      [-1, 1].forEach(s => { const eye = new T.Mesh(new T.ConeGeometry(.04, .07, 3), glow); eye.position.set(s * .07, .22, .27); p.add(eye); });
+      const grin = new T.Mesh(new T.BoxGeometry(.16, .035, .02), glow); grin.position.set(0, .12, .275); p.add(grin);
+    });
+    // little particles: drips (rainforest), breath (arctic), sweat (desert), bubbles (under the sea)
+    const parts = [];
+    function spawn(kind, pos, vel, life, size, color, opacity) {
+      const m = new T.MeshPhysicalMaterial({ color, transparent: true, opacity, roughness: 0, clearcoat: 1 });
+      const s = new T.Mesh(new T.SphereGeometry(size, 12, 8), m); s.position.copy(pos); scene.add(s);
+      parts.push({ s, vel, life, age: 0, kind, o: opacity });
+    }
+    let nextPart = 0;
+    const wetMats = () => [creatures.frog.paint.body, creatures.frog.paint.spot, creatures.tad.paint.body];
+    sceneHook = (dt) => {
+      const m = sceneMode;
+      if (stage === 'egg') return;
+      if (m === 'arctic' && !sleeping) { fx.rz += Math.sin(t * 55) * .022; fx.x += Math.sin(t * 47) * .012; }
+      if (m === 'disco' && !sleeping) { fx.rz += Math.sin(t * 6) * .09; fx.y += Math.abs(Math.sin(t * 6)) * .1; fx.ry += Math.sin(t * 3) * .25; }
+      if (m === 'space') { fx.y += .3 + Math.sin(t * .8) * .14; fx.rz += Math.sin(t * .6) * .06; }
+      if (m === 'underwater') fx.y += .08 + Math.sin(t * 1.1) * .06;
+      if (m === 'desert' && !sleeping) fx.open = Math.max(fx.open, (Math.sin(t * 7) * .5 + .5) * .45);
+      // particles
+      const c = creatures[keyOf(stage)];
+      if (t > nextPart && holder.visible) {
+        const head = new T.Vector3(); c.anchor.getWorldPosition(head);
+        if (m === 'rainforest') { nextPart = t + .25; const p = holder.localToWorld(new T.Vector3((Math.random() - .5) * 1.8, .9 + Math.random() * .8, (Math.random() - .3) * 1.2)); spawn('drip', p, new T.Vector3(0, -.2, 0), 1.2, .045, 0x9fd8ff, .75); }
+        else if (m === 'arctic' && c.mouth) { nextPart = t + 2.4; const mo = mouthWorld(c); for (let i = 0; i < 4; i++) spawn('puff', mo.clone().add(new T.Vector3(0, 0, .15)), new T.Vector3((Math.random() - .5) * .2, .25, .45), 1.6, .08, 0xffffff, .55); }
+        else if (m === 'desert') { nextPart = t + 2.8; spawn('drip', head.clone().add(new T.Vector3((Math.random() < .5 ? -1 : 1) * .45, -.1, .35)), new T.Vector3(0, -.15, .05), 1.3, .05, 0x9fd8ff, .85); }
+        else if (m === 'underwater' && c.mouth) { nextPart = t + 1.6; const mo = mouthWorld(c); for (let i = 0; i < 3; i++) spawn('bubble', mo.clone().add(new T.Vector3((Math.random() - .5) * .2, 0, .2)), new T.Vector3((Math.random() - .5) * .15, .6 + Math.random() * .3, .1), 3.5, .05 + Math.random() * .05, 0xe6f8ff, .5); }
+        else nextPart = t + .5;
+      }
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const q = parts[i]; q.age += dt;
+        if (q.kind === 'drip') q.vel.y -= 6 * dt;
+        if (q.kind === 'puff') q.s.scale.setScalar(1 + q.age * 2.2);
+        if (q.kind === 'bubble') q.s.position.x += Math.sin(t * 4 + i) * .004;
+        q.s.position.addScaledVector(q.vel, dt);
+        q.s.material.opacity = q.o * Math.max(0, 1 - q.age / q.life);
+        if (q.age >= q.life || (q.kind === 'drip' && q.s.position.y < .02)) { scene.remove(q.s); q.s.geometry.dispose(); q.s.material.dispose(); parts.splice(i, 1); }
+      }
+      // disco lights and mirrorball, pad colours cycling on the dance floor
+      if (disco.visible) {
+        mball.rotation.y += dt * 1.2;
+        discoLights.forEach((l, i) => { const a = t * 1.6 + i * 2.1; l.position.set(Math.cos(a) * 2.2, 2.2 + Math.sin(t * 2 + i) * .4, Math.sin(a) * 2.2); });
+        if (pad) { pad.material.color.setHSL((t * .15) % 1, .7, .45); padTop.material.color.setHSL((t * .15 + .5) % 1, .7, .55); }
+      }
+    };
     const tmpV = new T.Vector3();
     function moreTick() {
       const x = extras;
@@ -924,7 +1011,7 @@
       burstAt(x, y, z, n) { burst(new T.Vector3(x, y, z), n); },
       setExtras(on) {
         const big = !!(on && on.giantpad);
-        if (pad && pad.userData.big !== big) { pad.userData.big = big; const from = pad.scale.x, to = big ? 1.16 : 1; tween(.8, p => { const s = from + (to - from) * elastic(p); pad.scale.set(s, 1, s); padTop.scale.set(s, 1, s); }); pad.material.color.setHex(big ? 0x2f8a3a : pal.pad); padTop.material.color.setHex(big ? 0x3fa04a : pal.padTop); }
+        if (pad && pad.userData.big !== big) { pad.userData.big = big; const from = pad.scale.x, to = big ? 1.16 : 1; tween(.8, p => { const s = from + (to - from) * elastic(p); pad.scale.set(s, 1, s); padTop.scale.set(s, 1, s); }); applyPadColour(); }
         for (const k in extras) { const v = !!(on && on[k]); if (extras[k].visible !== v) { extras[k].visible = v; if (v) { const g = extras[k], s = g.scale.x || 1; tween(.6, p => g.scale.setScalar(Math.max(.001, s * elastic(p)))); } } } },
       setDaylight(m) { dayMul = m; lilyOpen = m >= 1.2 ? 1 : m >= .95 ? .55 : .08; },
       setWind(w) { wind = +w || 0; },
@@ -944,6 +1031,19 @@
         });
       },
       playToy,
+      setScene(name) {
+        if (name === sceneMode) return; sceneMode = name;
+        tache.frog.visible = tache.tad.visible = name === 'paris';
+        bubbleHelmet.visible = name === 'space'; disco.visible = name === 'disco'; pumpkins.visible = name === 'spooky';
+        wetMats().forEach(m => { if (m.userData.dry == null) m.userData.dry = [m.roughness, m.clearcoat]; m.roughness = name === 'rainforest' ? .08 : m.userData.dry[0]; m.clearcoat = name === 'rainforest' ? 1 : m.userData.dry[1]; });
+        applyPadColour();
+        if (name === 'paris') tween(.6, p => { const s = Math.max(.001, elastic(p)); tache.frog.scale.setScalar(s * 1.45); tache.tad.scale.setScalar(s * .8); });
+      },
+      shakeOff() {
+        api.react('no');
+        const p0 = new T.Vector3(); holder.getWorldPosition(p0);
+        for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2; spawn('drip', p0.clone().add(new T.Vector3(Math.cos(a) * .9, 1 + Math.random() * .5, Math.sin(a) * .9)), new T.Vector3(Math.cos(a) * 1.5, 1.2, Math.sin(a) * 1.5), 1, .05, 0x9fd8ff, .8); }
+      },
       // post-loo zoomies: race two laps round the lily pad, hopping and spinning
       zoomies() {
         tween(3.6, p => {

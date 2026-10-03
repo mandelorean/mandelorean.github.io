@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-03.6'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-03.7'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -52,11 +52,16 @@
     friends: [['ladybird', 'Ladybird', 40, '#E8302A', 'bug_report'], ['goldfish', 'Goldfish', 50, '#FF8A2A', 'set_meal'], ['snail', 'Snail', 50, '#C77A3C', 'pets'],
       ['duckling', 'Duckling', 60, '#FFD84D', 'egg'], ['butterfly', 'Butterfly', 60, '#c77dff', 'flutter_dash'], ['bee_friend', 'Bumblebee', 60, '#F5B915', 'hive'],
       ['dragonfly', 'Dragonfly', 70, '#2FB7C9', 'emoji_nature'], ['hedgehog', 'Hedgehog', 80, '#8B5A3C', 'pets'], ['babyfrog', 'Baby frog', 120, '#67c24a', 'favorite', { note: 'Copies everything he does' }]],
-    scenes: [['pond', 'Frog Pond', 0, '#2A5A35', 'water', { scene: true }], ['garden', 'Garden pond', 250, '#5AA04A', 'yard', { scene: true }],
-      ['seaside', 'Seaside rock pool', 250, '#37aae3', 'beach_access', { scene: true }], ['rainforest', 'Rainforest', 300, '#1F6B3A', 'forest', { scene: true }],
-      ['giantpad', 'Giant lotus pad', 300, '#FF8FC0', 'spa'], ['castle', 'Frog Castle', 500, '#9FB4CC', 'castle']]
+    places: [['pond', 'Frog Pond', 0, '#2A5A35', 'water', { scene: true }], ['garden', 'Garden pond', 250, '#5AA04A', 'yard', { scene: true }],
+      ['seaside', 'Seaside rock pool', 250, '#37aae3', 'beach_access', { scene: true }], ['rainforest', 'Rainforest', 300, '#1F6B3A', 'forest', { scene: true, note: 'He gets soaking wet!' }],
+      ['arctic', 'Arctic', 300, '#9fd3ea', 'ac_unit', { scene: true, note: 'Brrr! He shivers' }], ['desert', 'Desert', 300, '#E0B061', 'wb_sunny', { scene: true, note: 'Phew! He gets hot' }],
+      ['paris', 'Paris', 350, '#6F8CFF', 'tour', { scene: true, note: 'Ooh la la, a moustache!' }], ['london', 'London', 350, '#E23B3B', 'account_balance', { scene: true, note: 'Big Ben goes bong' }],
+      ['spooky', 'Spooky night', 350, '#6B4BD6', 'dark_mode', { scene: true, note: 'Bats and pumpkins' }], ['candy', 'Candy Land', 400, '#FF8FC0', 'cake', { scene: true }],
+      ['underwater', 'Under the sea', 400, '#1b8aa3', 'scuba_diving', { scene: true, note: 'He blows bubbles' }], ['disco', 'Disco', 450, '#c77dff', 'nightlife', { scene: true, note: 'Mirrorball and dancing!' }],
+      ['space', 'Outer space', 500, '#1b1f3a', 'rocket_launch', { scene: true, note: 'He floats in a space bubble' }]],
+    scenes: [['giantpad', 'Giant lotus pad', 300, '#FF8FC0', 'spa'], ['castle', 'Frog Castle', 500, '#9FB4CC', 'castle']]
   };
-  const TABS = [['treats', 'Treats'], ['hats', 'Hats'], ['clothes', 'Clothes'], ['colours', 'Colours'], ['toys', 'Toys'], ['pond', 'Pond'], ['friends', 'Friends'], ['scenes', 'Big goals']];
+  const TABS = [['treats', 'Treats'], ['hats', 'Hats'], ['clothes', 'Clothes'], ['colours', 'Colours'], ['toys', 'Toys'], ['pond', 'Pond'], ['friends', 'Friends'], ['places', 'Places'], ['scenes', 'Big goals']];
   // Frog colours: body, belly and spots for the frog; body and belly for the tadpole
   const COLOURS = {
     green: { name: 'Classic green', price: 0, swatch: '#67c24a', body: 0x67c24a, belly: 0xe4f6b4, spot: 0x4c9e36, tad: 0x4fb08a, tadBelly: 0xcdf1dc },
@@ -133,6 +138,38 @@
       : (c >= 61 && c <= 67) || (c >= 80 && c <= 82) ? 'rain' : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'snow' : c >= 95 ? 'storm' : 'cloudy';
   }
   const isRainy = () => ['rain', 'drizzle', 'storm'].includes(wxKind());
+  // places change the sky: made-up places have their own, real places follow Fleet's clock
+  const FANTASY = { space: 'night', disco: 'night', spooky: 'night', underwater: 'day', candy: 'day' };
+  const scenePhase = () => FANTASY[S.scene] || skyPhase();
+  function sceneWeather() {
+    const sc = S.scene, k = wxKind();
+    if (FANTASY[sc] || sc === 'desert') return 'clear';
+    if (sc === 'arctic') return 'snow';
+    if (sc === 'rainforest') return k === 'rain' || k === 'storm' ? k : 'drizzle';
+    return k;
+  }
+  const SCENE_LINES = {
+    garden: ['What a lovely garden!', 'I can smell the flowers!'], seaside: ['I can hear the waves!', 'Look, a starfish!'],
+    rainforest: ["I'm soaking wet! Drip drip drip.", 'Ooh, I can hear a toucan!', "It's so rainy in the rainforest!"],
+    arctic: ["B-b-b-brrr! It's f-f-freezing!", 'Look, penguins! Hello, penguins!', 'My toes are like ice lollies!'],
+    desert: ["Phew! It's sooo hot!", 'Is that a pyramid? Wow!', 'I need a drink of water!'],
+    paris: ['Bonjour! Do you like my moustache?', 'Ooh la la! The Eiffel Tower!', 'Croissant, anyone? Ribbit!'],
+    london: ['Fancy a cup of tea?', "Look, it's Big Ben!", 'Shall we ride the red bus?'],
+    spooky: ['Wooooo! Spooky!', 'Did that bat just wink at me?', 'Trick or treat? Ribbit!'],
+    candy: ['Everything is made of sweets!', 'Can I lick the lollipop trees?', 'This place is so sweet!'],
+    underwater: ['Blub blub! Look at the fish!', "I'm a deep-sea frog!", 'Bubbles! Blub blub!'],
+    disco: ["Let's boogie!", 'Look at the mirrorball spin!', "I've got the moves! Ribbit!"],
+    space: ['One small hop for a frog!', "Wheee, I'm floating!", 'Hello, Earth! I can see my pond!']
+  };
+  const sceneLine = () => (SCENE_LINES[S.scene] ? SCENE_LINES[S.scene][Math.floor(Date.now() / 20000) % SCENE_LINES[S.scene].length] : null);
+  function enterScene(id) {
+    const lines = SCENE_LINES[id]; if (lines) setTimeout(() => say(lines[0], 3500), 1300);
+    if (id === 'london') [0, 1, 2].forEach(i => setTimeout(() => sfx('bong'), 300 + i * 1300));
+    if (id === 'disco') sfx('tune');
+    if (id === 'arctic') setTimeout(() => sfx('brr'), 600);
+    if (id === 'rainforest') setTimeout(() => engine && engine.shakeOff(), 1200);
+    if (id === 'space') setTimeout(() => sfx('whoosh'), 200);
+  }
   const WX_ICON = { clear: ['wb_sunny', 'dark_mode'], partly: ['partly_cloudy_day', 'partly_cloudy_night'], cloudy: ['cloud', 'cloud'], fog: ['foggy', 'foggy'], drizzle: ['rainy', 'rainy'], rain: ['rainy', 'rainy'], snow: ['ac_unit', 'ac_unit'], storm: ['thunderstorm', 'thunderstorm'] };
   async function fetchWeather() {
     try {
@@ -228,7 +265,8 @@
     engine.setDirty(S.needs.clean < 40 ? (40 - S.needs.clean) / 40 : 0);
     engine.setMess(S.mess); engine.setExtras(S.stage === 'egg' ? {} : S.decor);
     engine.setColour(Object.assign({ key: S.colour }, COLOURS[S.colour] || COLOURS.green));
-    const ph = skyPhase(), dull = ['cloudy', 'fog', 'rain', 'drizzle', 'storm', 'snow'].includes(wxKind());
+    engine.setScene(S.scene);
+    const ph = scenePhase(), dull = ['cloudy', 'fog', 'rain', 'drizzle', 'storm', 'snow'].includes(sceneWeather());
     engine.setDaylight((ph === 'day' ? 1.3 : ph === 'night' ? .6 : 1) * (dull ? .85 : 1));
   }
   function mood() {
@@ -280,7 +318,8 @@
     ['treat', 'Treat time', 'cake', '#FF8FC0', 'Buy a treat', s => (s.stats.treats || 0) >= 1],
     ['player', 'Playtime', 'sports_volleyball', '#FF6B6B', 'Play with a toy 10 times', s => (s.stats.toys || 0) >= 10],
     ['collector', 'Collector', 'inventory_2', '#76cf8a', 'Own 15 things from the shop', s => Object.keys(s.owned).length >= 15],
-    ['royal', 'King of the castle', 'castle', '#8f7fe0', 'Buy the Frog Castle', s => !!s.owned.castle]
+    ['royal', 'King of the castle', 'castle', '#8f7fe0', 'Buy the Frog Castle', s => !!s.owned.castle],
+    ['traveller', 'World traveller', 'travel_explore', '#37aae3', 'Own 5 places', s => ['garden', 'seaside', 'rainforest', 'arctic', 'desert', 'paris', 'london', 'spooky', 'candy', 'underwater', 'disco', 'space'].filter(k => s.owned[k]).length >= 5]
   ];
   let checking = false;
   function checkStickers() {
@@ -394,6 +433,9 @@
       nextIdle = now + rand(12e3, 25e3);
       const r = Math.random(); if (r < .4) engine.hop(); else if (r < .8) engine.lookAround(); else engine.react('pet');
       if (S.decor.duckling && Math.random() < .35) setTimeout(() => sfx('quack'), 600);
+      if (S.scene === 'rainforest' && Math.random() < .3) { engine.shakeOff(); say('Shake shake! I’m drenched!', 2200); }
+      if (S.scene === 'arctic' && Math.random() < .3) sfx('brr');
+      if (S.scene === 'london' && new Date().getMinutes() === 0 && Math.random() < .5) sfx('bong');
       if (Math.random() < .4) sfx('ribbit');
     }
     if (now - lastInteract > 30e3 && now >= nextNudge) {
@@ -604,7 +646,7 @@
     else if (it.tab === 'colours') { if (S.colour !== id) { set({ colour: id }); engine && engine.react('celebrate'); say(pick(['Ta-da! A whole new me!', 'Do you like my new colour?', 'Ooh, I feel fabulous!'])); if (id !== 'green') count('colours'); } }
     else if (it.slot) { const on = S[it.slot] !== id || fresh; set({ [it.slot]: on ? id : 'none' }); if (on) say(pick(['How do I look?', 'Very smart!', 'I love it!'])); if (S.stage === 'tadpole') say("I'll wear it when I grow legs!"); }
     else if (it.auto) say(it.note + '!', 2600);
-    else if (it.scene) { if (S.scene !== id) { set({ scene: id }); say(pick(['Ooh, a new home!', 'Wow, look at this place!', 'I love it here!'])); } }
+    else if (it.scene) { if (S.scene !== id) { set({ scene: id }); say(pick(['Ooh, a new place!', 'Wow, look at this!', 'Off we go!']), 1300); enterScene(id); } }
     else { const on = fresh || !S.decor[id]; set({ decor: Object.assign({}, S.decor, { [id]: on }) }); if (on) say(pick(['Ooh, lovely!', 'My pond looks amazing!', 'Hello, friend!', 'Wow, thank you!'])); }
     checkStickers();
   }
@@ -624,7 +666,7 @@
     if (S.confirm !== id) { set({ confirm: id }); return; }
     set({ owned: Object.assign({}, S.owned, { [id]: true }), coins: S.coins - it.price, confirm: null });
     count('buys'); equip(it, true); save(); sfx('coin'); setTimeout(() => sfx('fanfare'), 150);
-    if (!it.auto) say(pick(['Ooh, thank you!', 'Wow! I love it!', 'Best present ever!']));
+    if (!it.auto && !it.scene) say(pick(['Ooh, thank you!', 'Wow! I love it!', 'Best present ever!']));
     checkStickers();
   }
   function giveTreat(it) {
@@ -675,7 +717,7 @@
         const W = 1080, H = 1350, P = 54, ph = 1060, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
         const g = cv.getContext('2d');
         g.fillStyle = '#FFFDF6'; g.fillRect(0, 0, W, H);
-        const [s1, s2, w1, w2] = SKY[skyPhase()], gr = g.createLinearGradient(0, P, 0, P + ph);
+        const [s1, s2, w1, w2] = SKY[scenePhase()], gr = g.createLinearGradient(0, P, 0, P + ph);
         gr.addColorStop(0, s1); gr.addColorStop(.38, s2); gr.addColorStop(.381, w1); gr.addColorStop(1, w2);
         g.save(); g.beginPath(); g.rect(P, P, W - 2 * P, ph); g.clip(); g.fillStyle = gr; g.fillRect(P, P, W - 2 * P, ph);
         const s = Math.max((W - 2 * P) / img.width, ph / img.height), iw = img.width * s, ih = img.height * s;
@@ -997,8 +1039,60 @@
   function buildScenery(scene) {
     builtScene = scene;
     const R = Math.random, bumps = (step, lo, hi) => { let d = ''; for (let x = 0; x <= 400; x += step + R() * step) d += ' Q' + (x + 4).toFixed(0) + ' ' + (lo + R() * (hi - lo)).toFixed(0) + ' ' + (x + step).toFixed(0) + ' ' + (hi + R() * 4).toFixed(0); return d; };
-    let hz = '', corner = () => '';
-    if (scene === 'garden') {
+    let hz = '', corner = () => '', fx = '';
+    // a landmark standing on the horizon
+    const lm = (left, w, h, vb, inner, cls) => '<svg class="lm ' + (cls || '') + '" style="left:' + left + '%;width:' + w + '%;height:' + h + '%" viewBox="' + vb + '" preserveAspectRatio="xMidYMax meet">' + inner + '</svg>';
+    const peaks = (pts, fill) => '<path d="M0 40 ' + pts + ' L400 40 Z" fill="' + fill + '"/>';
+    if (scene === 'arctic') {
+      hz = peaks('L0 24 L30 6 L55 20 L80 2 L110 22 L140 10 L170 26 L200 12 L235 28 L265 8 L300 24 L330 14 L360 28 L400 16', '#f4fbff') + peaks('L0 32 L40 22 L70 30 L110 26 L150 33 L200 24 L250 32 L300 27 L350 34 L400 28', '#cfe6f2') +
+        '<path d="M300 40 A14 14 0 0 1 328 40 Z" fill="#ffffff"/><path d="M309 40 A5 5 0 0 1 319 40 Z" fill="#7aa7bf"/><path d="M302 34 L326 34 M304 30 L324 30" stroke="#cfe6f2" stroke-width=".8"/>';
+      corner = side => side ? '<rect x="8" y="88" width="40" height="32" rx="4" fill="#e6f6ff"/><rect x="40" y="96" width="30" height="24" rx="4" fill="#cfe9f7"/>' :
+        [[30, 80], [58, 90]].map(([x, y], i) => '<ellipse cx="' + x + '" cy="' + (y + 12) + '" rx="' + (12 - i * 2) + '" ry="' + (20 - i * 3) + '" fill="#1b1b24"/><ellipse cx="' + x + '" cy="' + (y + 16) + '" rx="' + (7 - i) + '" ry="' + (13 - i * 2) + '" fill="#fff"/><circle cx="' + (x - 3) + '" cy="' + (y - 2) + '" r="1.6" fill="#fff"/><circle cx="' + (x + 3) + '" cy="' + (y - 2) + '" r="1.6" fill="#fff"/><path d="M' + (x - 3) + ' ' + (y + 2) + ' L' + x + ' ' + (y + 6) + ' L' + (x + 3) + ' ' + (y + 2) + ' Z" fill="#ff9a2a"/><ellipse cx="' + (x - 5) + '" cy="' + (y + 32 - i * 3) + '" rx="4" ry="2" fill="#ff9a2a"/><ellipse cx="' + (x + 5) + '" cy="' + (y + 32 - i * 3) + '" rx="4" ry="2" fill="#ff9a2a"/>').join('');
+      fx = '<div class="aurora"></div>';
+    } else if (scene === 'desert') {
+      hz = '<path d="M0 40 L0 26 Q60 10 120 24 Q180 36 240 22 Q300 10 360 22 Q385 27 400 24 L400 40 Z" fill="#e8c27a"/><path d="M0 40 L0 32 Q80 24 160 34 Q240 40 320 30 Q370 26 400 32 L400 40 Z" fill="#d6a95c"/>';
+      fx = lm(8, 46, 22, '0 0 200 100', '<polygon points="0,100 60,18 120,100" fill="#d9a35e"/><polygon points="60,18 120,100 84,100" fill="#b9823f"/><polygon points="96,100 150,42 204,100" fill="#d9a35e"/><polygon points="150,42 204,100 170,100" fill="#b9823f"/>');
+      corner = side => '<path d="M40 120 L40 40 Q40 28 47 28 Q54 28 54 40 L54 120 Z M40 80 L28 80 Q22 80 22 70 L22 56 Q22 50 27 50 Q32 50 32 56 L32 72 L40 72 Z M54 70 L64 70 L64 52 Q64 46 69 46 Q74 46 74 52 L74 70 Q74 78 66 78 L54 78 Z" fill="#3f8a3f"/><ellipse cx="' + (side ? 20 : 74) + '" cy="116" rx="14" ry="6" fill="#c48f5a"/>';
+    } else if (scene === 'paris') {
+      let roofs = ''; for (let x = 0; x < 400; x += 26 + (x % 3) * 6) { const h = 14 + ((x * 7) % 11); roofs += '<rect x="' + x + '" y="' + (40 - h) + '" width="' + (24 + (x % 3) * 6) + '" height="' + h + '" fill="#e9dcc3"/><path d="M' + x + ' ' + (40 - h) + ' L' + (x + 4) + ' ' + (34 - h) + ' L' + (x + 20 + (x % 3) * 6) + ' ' + (34 - h) + ' L' + (x + 24 + (x % 3) * 6) + ' ' + (40 - h) + ' Z" fill="#6c7591"/><rect x="' + (x + 8) + '" y="' + (44 - h) + '" width="4" height="5" fill="#9fb4cc"/>'; }
+      hz = roofs;
+      fx = lm(14, 22, 36, '0 0 100 200', '<path d="M50 0 L52 28 L56 60 L62 95 L70 130 L86 200 L66 200 Q50 158 34 200 L14 200 L30 130 L38 95 L44 60 L48 28 Z" fill="#5b5f6e"/><rect x="35" y="92" width="30" height="5" fill="#474a57"/><rect x="25" y="127" width="50" height="6" fill="#474a57"/><path d="M42 60 L58 95 M58 60 L42 95 M34 133 L66 196 M66 133 L34 196" stroke="#474a57" stroke-width="1.5"/>');
+      corner = side => side ? '<rect x="20" y="96" width="40" height="22" rx="3" fill="#b5651d"/><circle cx="28" cy="94" r="7" fill="#ff5c8a"/><circle cx="40" cy="91" r="7" fill="#ffd23f"/><circle cx="52" cy="94" r="7" fill="#ff5c8a"/>' :
+        '<rect x="42" y="30" width="5" height="90" fill="#1f2a22"/><path d="M34 30 L55 30 L50 14 L39 14 Z" fill="#1f2a22"/><rect x="38" y="16" width="13" height="12" fill="#ffe28a"/><rect x="36" y="112" width="17" height="8" fill="#1f2a22"/>';
+    } else if (scene === 'london') {
+      let sky = ''; for (let x = 0; x < 400; x += 22) { const h = 10 + ((x * 13) % 14); sky += '<rect x="' + x + '" y="' + (40 - h) + '" width="21" height="' + h + '" fill="#8d8f9a"/>'; }
+      hz = sky + '<rect x="0" y="34" width="400" height="6" fill="#6b6e78"/><g transform="translate(250 22)"><rect width="36" height="13" rx="2" fill="#d62828"/><rect x="2" y="2" width="32" height="4" fill="#ffe8e8"/><rect x="2" y="7.5" width="32" height="3" fill="#ffe8e8"/><circle cx="8" cy="13" r="2.5" fill="#1b1b24"/><circle cx="28" cy="13" r="2.5" fill="#1b1b24"/></g>';
+      fx = lm(6, 14, 38, '0 0 60 220', '<rect x="16" y="70" width="28" height="150" fill="#c9a66b"/><rect x="12" y="58" width="36" height="40" fill="#b8955c"/><circle cx="30" cy="78" r="12" fill="#fdf6e3"/><path d="M30 78 L30 69 M30 78 L36 81" stroke="#1f2a22" stroke-width="2"/><polygon points="12,58 48,58 30,4" fill="#6b5435"/><path d="M22 110 L22 210 M30 110 L30 210 M38 110 L38 210" stroke="#a8874f" stroke-width="2"/>') +
+        lm(66, 30, 28, '0 0 120 130', '<circle cx="60" cy="58" r="52" fill="none" stroke="#eef2f7" stroke-width="3"/>' + Array.from({ length: 12 }, (_, i) => { const a = i / 12 * Math.PI * 2; return '<line x1="60" y1="58" x2="' + (60 + Math.cos(a) * 52) + '" y2="' + (58 + Math.sin(a) * 52) + '" stroke="#dfe6ee" stroke-width="1"/><circle cx="' + (60 + Math.cos(a) * 52) + '" cy="' + (58 + Math.sin(a) * 52) + '" r="4" fill="#bfe6ff"/>'; }).join('') + '<path d="M60 58 L42 130 M60 58 L78 130" stroke="#eef2f7" stroke-width="3"/>', 'eye');
+      corner = side => side ? '<rect x="42" y="30" width="5" height="90" fill="#1f2a22"/><path d="M34 30 L55 30 L50 14 L39 14 Z" fill="#1f2a22"/><rect x="38" y="16" width="13" height="12" fill="#ffe28a"/>' :
+        '<rect x="24" y="40" width="40" height="80" rx="4" fill="#d62828"/><path d="M24 44 Q44 30 64 44" fill="#b81f1f"/><rect x="29" y="54" width="30" height="40" fill="#ffe8e8"/><path d="M39 54 L39 94 M49 54 L49 94 M29 67 L59 67 M29 80 L59 80" stroke="#d62828" stroke-width="2"/><rect x="30" y="46" width="28" height="5" fill="#1b1b24"/>';
+    } else if (scene === 'spooky') {
+      let t = ''; [[30, 14], [120, 8], [210, 16], [330, 10]].forEach(([x, top]) => { t += '<path d="M' + x + ' 40 L' + (x + 2) + ' ' + top + ' M' + (x + 1) + ' ' + (top + 10) + ' L' + (x - 8) + ' ' + (top + 2) + ' M' + (x + 1) + ' ' + (top + 14) + ' L' + (x + 10) + ' ' + (top + 5) + '" stroke="#160d22" stroke-width="2.2" fill="none"/>'; });
+      hz = '<path d="M0 40 L0 32 Q100 26 200 33 Q300 38 400 30 L400 40 Z" fill="#160d22"/>' + t + [60, 80, 160, 260, 280].map(x => '<path d="M' + x + ' 40 L' + x + ' 32 Q' + (x + 5) + ' 26 ' + (x + 10) + ' 32 L' + (x + 10) + ' 40 Z" fill="#2a2038"/>').join('');
+      fx = lm(64, 30, 24, '0 0 120 110', '<rect x="20" y="45" width="70" height="65" fill="#1b1028"/><polygon points="14,47 55,12 96,47" fill="#140b1f"/><rect x="82" y="22" width="18" height="88" fill="#1b1028"/><polygon points="78,24 91,0 104,24" fill="#140b1f"/>' + [[34, 60], [62, 60], [34, 84], [87, 40]].map(([x, y]) => '<rect x="' + x + '" y="' + y + '" width="10" height="12" fill="#ffd23f" opacity=".85"/>').join('')) +
+        '<div class="bats">' + [0, 1, 2, 3].map(i => '<span style="top:' + (8 + i * 7) + '%;animation-delay:' + (-i * 3.3) + 's;animation-duration:' + (11 + i * 2) + 's"><svg viewBox="0 0 40 16"><path d="M20 6 Q16 0 10 4 Q6 0 0 6 Q6 6 8 10 Q12 8 14 12 Q17 9 20 12 Q23 9 26 12 Q28 8 32 10 Q34 6 40 6 Q34 0 30 4 Q24 0 20 6 Z" fill="#0d0815"/></svg></span>').join('') + '</div>';
+      corner = side => '<path d="M14 120 L14 92 Q14 78 27 78 Q40 78 40 92 L40 120 Z" fill="#4a4458"/><path d="M27 86 L27 100 M21 92 L33 92" stroke="#2a2438" stroke-width="2.5"/>' +
+        '<ellipse cx="62" cy="110" rx="16" ry="11" fill="#ff8a1f"/><rect x="60" y="96" width="4" height="6" fill="#4c7a2a"/><path d="M55 106 L58 102 L61 106 Z M63 106 L66 102 L69 106 Z M55 113 Q62 118 69 113" fill="#ffd23f" stroke="#ffd23f"/>';
+    } else if (scene === 'candy') {
+      hz = [[0, 30, '#ffb3d1'], [60, 26, '#b3e5ff'], [120, 32, '#c9f7c1'], [180, 24, '#ffe28a'], [240, 30, '#d9c2ff'], [300, 26, '#ffb3d1'], [360, 30, '#b3e5ff']].map(([x, r, c]) => '<ellipse cx="' + (x + 30) + '" cy="40" rx="' + (r + 8) + '" ry="' + r + '" fill="' + c + '"/>').join('');
+      const pop = (x, h, c) => '<rect x="' + (x - 1.5) + '" y="' + (40 - h) + '" width="3" height="' + h + '" fill="#fff"/><circle cx="' + x + '" cy="' + (40 - h) + '" r="9" fill="' + c + '"/><circle cx="' + x + '" cy="' + (40 - h) + '" r="5.5" fill="none" stroke="#fff" stroke-width="1.6"/>';
+      hz += pop(90, 30, '#ff5c8a') + pop(210, 34, '#a780e6') + pop(330, 28, '#37aae3');
+      corner = side => '<path d="M40 120 L40 40 Q40 20 58 20 Q76 20 76 38" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/><path d="M40 120 L40 40 Q40 20 58 20 Q76 20 76 38" fill="none" stroke="#e23b3b" stroke-width="9" stroke-linecap="round" stroke-dasharray="7 7"/>' +
+        '<rect x="12" y="70" width="3" height="50" fill="#fff"/><circle cx="13.5" cy="66" r="11" fill="' + (side ? '#ffd23f' : '#7fe0a0') + '"/><circle cx="13.5" cy="66" r="6" fill="none" stroke="#fff" stroke-width="2"/>';
+    } else if (scene === 'underwater') {
+      hz = '<path d="M0 40 L0 28 Q20 18 40 26 Q60 34 80 24 Q110 14 140 28 Q170 36 200 26 Q240 16 270 30 Q310 38 340 24 Q370 16 400 26 L400 40 Z" fill="#0b3a48"/>' +
+        [[60, '#ff7eb6'], [150, '#ffb36b'], [250, '#ff7eb6'], [350, '#c77dff']].map(([x, c]) => '<path d="M' + x + ' 30 L' + (x - 6) + ' 16 M' + x + ' 30 L' + (x + 6) + ' 14 M' + x + ' 30 L' + x + ' 12" stroke="' + c + '" stroke-width="3" stroke-linecap="round"/>').join('');
+      corner = side => [[16, 20], [34, 4], [52, 26], [70, 12]].map(([x, top], i) => '<path class="weed" style="animation-delay:' + (-i * .6) + 's" d="M' + x + ' 120 Q' + (x - 10) + ' ' + (top + 70) + ' ' + x + ' ' + (top + 40) + ' Q' + (x + 10) + ' ' + (top + 15) + ' ' + x + ' ' + top + '" fill="none" stroke="' + (i % 2 ? '#2f9a5a' : '#3fbf6a') + '" stroke-width="6" stroke-linecap="round"/>').join('');
+      fx = '<div class="rays"></div><div class="fishies">' + [0, 1, 2].map(i => '<span style="top:' + (14 + i * 9) + '%;animation-delay:' + (-i * 4) + 's;animation-duration:' + (14 + i * 3) + 's"><svg viewBox="0 0 30 16"><ellipse cx="12" cy="8" rx="11" ry="6" fill="' + ['#ffb36b', '#ffd23f', '#ff7eb6'][i] + '"/><path d="M22 8 L30 2 L30 14 Z" fill="' + ['#ffb36b', '#ffd23f', '#ff7eb6'][i] + '"/><circle cx="6" cy="6.5" r="1.6" fill="#1b1b24"/></svg></span>').join('') + '</div><div class="risers">' + Array.from({ length: 10 }, (_, i) => '<span style="left:' + (5 + i * 9.5) + '%;animation-delay:' + (-i * .9) + 's;animation-duration:' + (5 + (i % 4)) + 's"></span>').join('') + '</div>';
+    } else if (scene === 'disco') {
+      hz = '<rect x="0" y="34" width="400" height="6" fill="#2a0d45"/>';
+      corner = side => '<rect x="20" y="40" width="46" height="80" rx="5" fill="#1b1024"/><circle cx="43" cy="62" r="11" fill="#2d2040" stroke="#5a3d7a" stroke-width="3"/><circle cx="43" cy="96" r="16" fill="#2d2040" stroke="#5a3d7a" stroke-width="3"/><circle cx="43" cy="96" r="5" fill="#5a3d7a"/>';
+      fx = '<div class="beams">' + ['#ff3fa4', '#3fd9ff', '#ffe14d', '#7cff6b'].map((c, i) => '<span style="--c:' + c + ';animation-delay:' + (-i * 1.5) + 's;left:' + (15 + i * 23) + '%"></span>').join('') + '</div><div class="sparkles"></div>';
+    } else if (scene === 'space') {
+      hz = '<path d="M0 40 L0 26 L22 18 L38 28 L60 12 L84 26 L110 20 L140 30 L170 16 L200 28 L230 22 L260 30 L290 14 L320 26 L350 20 L380 28 L400 22 L400 40 Z" fill="#5e636d"/>';
+      corner = side => '<ellipse cx="30" cy="112" rx="24" ry="10" fill="#6c717b"/><ellipse cx="62" cy="114" rx="14" ry="6" fill="#7d828c"/>' + (side ? '<rect x="58" y="60" width="2.5" height="54" fill="#ddd"/><rect x="60.5" y="60" width="22" height="14" fill="#3fa45b"/><circle cx="71" cy="67" r="4" fill="#fff"/>' : '');
+      fx = '<div class="planet ring"></div><div class="planet earth"></div><div class="shooting"></div>';
+    } else if (scene === 'garden') {
       hz = '<path d="M0 40 L0 18' + bumps(12, 10, 20) + ' L400 20 L400 40 Z" fill="#2f6b3a"/>' +
         '<path d="M298 40 L298 14 L322 3 L346 14 L346 40 Z" fill="#9a6a44"/><rect x="314" y="24" width="12" height="16" fill="#5a3a24"/><rect x="330" y="17" width="9" height="7" fill="#cfe8f2"/>';
       let f = ''; for (let x = 0; x < 400; x += 9) if (x < 292 || x > 350) f += 'M' + x + ' 40 L' + x + ' 27 L' + (x + 3) + ' 23 L' + (x + 6) + ' 27 L' + (x + 6) + ' 40 Z ';
@@ -1027,7 +1121,8 @@
         h += '<path d="M' + (x - w) + ' 120 Q' + (x + lean * .2) + ' ' + (top + 50) + ' ' + (x + lean) + ' ' + top + ' Q' + (x + lean * .2 + w * .6) + ' ' + (top + 50) + ' ' + (x + w) + ' 120 Z" fill="currentColor"/>';
         if (head) h += '<rect x="' + (x + lean * .9 - 3.5) + '" y="' + (top + 2) + '" width="7" height="20" rx="3.5" fill="#4a2e1c" opacity=".85"/>'; }); return h; };
     }
-    $('trees').innerHTML = hz; $('reedsL').innerHTML = corner(); $('reedsR').innerHTML = corner();
+    $('trees').innerHTML = hz; $('reedsL').innerHTML = corner(0); $('reedsR').innerHTML = corner(1);
+    $('sceneFx').innerHTML = fx;
   }
 
   // ---------- Build static bits ----------
@@ -1166,7 +1261,9 @@
     const open = openLearnJob();
     if (open && Math.floor(Date.now() / 15000) % 3 === 0) return "Today's job: " + QUIZ[open.id.slice(5)].title + '. Shall we?';
     if (isNight() && S.needs.energy < 70) return "It's nearly bedtime!";
-    const wl = weatherLine(); if (wl && Math.floor(Date.now() / 20000) % 4 === 1) return wl;
+    const slot = Math.floor(Date.now() / 20000) % 4, sl = sceneLine(), wl = weatherLine();
+    if (sl && (slot === 1 || slot === 3)) return sl;
+    if (wl && slot === 1) return wl;
     return m === 'happy' ? 'Ribbit! I love you, friend!' : okLines[low.k];
   }
 
@@ -1176,15 +1273,15 @@
     const low = needs.slice().sort((a, b) => a.v - b.v)[0], m = mood();
 
     // sky
-    const ph = skyPhase(), wk = wxKind(), wet = isRainy(), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene;
+    const ph = scenePhase(), wk = sceneWeather(), wet = ['rain', 'drizzle', 'storm'].includes(wk), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene + (FANTASY[S.scene] ? ' fantasy' : '');
     if (builtScene !== S.scene) buildScenery(S.scene);
     if ($('pond').className !== cls) $('pond').className = cls;
-    const orb = wk === 'clear' || wk === 'partly' ? (ph === 'night' ? 'moon' : 'sun') : '';
+    const orb = S.scene === 'spooky' ? 'moon full' : FANTASY[S.scene] ? '' : S.scene === 'desert' ? 'sun big' : wk === 'clear' || wk === 'partly' ? (ph === 'night' ? 'moon' : 'sun') : '';
     if ($('orb').className !== 'sky-orb ' + orb) $('orb').className = 'sky-orb ' + orb;
     $('orb').hidden = !orb;
     show('fireflies', (ph === 'night' || ph === 'dusk') && !wet && wk !== 'snow'); show('rain', wet);
     show('wx', hatched && wxFresh());
-    if (wxFresh()) { text($('wxIcon'), WX_ICON[wk][ph === 'night' ? 1 : 0]); text($('wxTemp'), WX.temp + '°C Fleet'); }
+    if (wxFresh()) { const rk = wxKind(); text($('wxIcon'), WX_ICON[rk][skyPhase() === 'night' ? 1 : 0]); text($('wxTemp'), WX.temp + '°C Fleet'); }
 
     show('head', hatched); show('dock', hatched); show('speech', hatched); show('eggSheet', !hatched);
     show('night', hatched && S.asleep); show('zzz', hatched && S.asleep); show('looSign', !!S.away);
