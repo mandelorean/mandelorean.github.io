@@ -20,7 +20,7 @@
 
     const scene = new T.Scene();
     const camera = new T.PerspectiveCamera(30, 1, .1, 100);
-    scene.add(new T.HemisphereLight(L.sky ?? 0xffffff, L.ground ?? 0x9fbf8a, L.hemi ?? .8));
+    const hemi = new T.HemisphereLight(L.sky ?? 0xffffff, L.ground ?? 0x9fbf8a, L.hemi ?? .8); scene.add(hemi);
     const key = new T.DirectionalLight(L.key ?? 0xffffff, L.keyI ?? 1.05);
     key.position.set(3, 6, 5); key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
     Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 });
@@ -208,8 +208,10 @@
     const tasks = [];
     function tween(dur, fn, done, delay = 0) { tasks.push({ t: -delay, dur, fn, done }); }
     const fx = {};
-    const tgt = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0 };
-    const cur = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0 };
+    const tgt = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0, night: 0 };
+    const cur = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0, night: 0 };
+    let mood = 'ok', sleeping = false;
+    const lightBase = { hemi: hemi.intensity, key: key.intensity, rim: rim.intensity, fill: fill.intensity };
     const look = { x: 0, y: 0 }, lookCur = { x: 0, y: 0 };
     let yaw = 0, pitch = 0, drag = null;
     let blinkT = 2, blinkP = -1;
@@ -237,6 +239,18 @@
       const c = new T.Vector3(0, .9, 0).project(camera);
       return Math.hypot(ndc.x - c.x, (ndc.y - c.y) / camera.aspect) < .38;
     }
+    function messHit(x, y) {
+      const r = cv.getBoundingClientRect();
+      const ndc = new T.Vector2((x - r.left) / r.width * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      for (let i = 0; i < messSlots.length; i++) {
+        const m = messSlots[i]; if (!m.visible || m.userData.hp <= 0) continue;
+        if (ray.intersectObject(m, true).length) return i;
+        const c = m.position.clone().setY(.25).project(camera);
+        if (Math.hypot(ndc.x - c.x, (ndc.y - c.y) / camera.aspect) < .14) return i;
+      }
+      return -1;
+    }
     function onDown(e) { drag = { x: e.clientX, y: e.clientY, yaw, pitch, moved: false }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} cv.style.cursor = 'grabbing'; }
     function onMove(e) {
       const r = cv.getBoundingClientRect();
@@ -251,7 +265,10 @@
       if (!drag) return;
       const tap = !drag.moved; drag = null; cv.style.cursor = 'grab';
       yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
-      if (tap && hitTest(e.clientX, e.clientY) && opts.onTap) opts.onTap();
+      if (!tap) return;
+      const mi = messHit(e.clientX, e.clientY);
+      if (mi >= 0) { opts.onMess && opts.onMess(mi); return; }
+      if (hitTest(e.clientX, e.clientY) && opts.onTap) opts.onTap();
     }
     cv.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
@@ -261,7 +278,7 @@
     function frame() {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(.05, clock.getDelta()); t += dt;
-      Object.assign(fx, { y: 0, sx: 1, sy: 1, ry: 0, rz: 0, open: 0, squint: 0 });
+      Object.assign(fx, { x: 0, y: 0, sx: 1, sy: 1, ry: 0, rz: 0, open: 0, squint: 0 });
       for (let i = 0; i < tasks.length; i++) {
         const k = tasks[i]; k.t += dt;
         if (k.t < 0) continue;
@@ -273,13 +290,15 @@
       lookCur.x += (look.x - lookCur.x) * (1 - Math.exp(-dt * 8));
       lookCur.y += (look.y - lookCur.y) * (1 - Math.exp(-dt * 8));
       blinkT -= dt;
-      if (blinkT <= 0) { blinkP = 0; blinkT = 2.5 + Math.random() * 3.5; }
+      if (blinkT <= 0 && !sleeping) { blinkP = 0; blinkT = 2.5 + Math.random() * 3.5; }
       let blink = 1;
       if (blinkP >= 0) { blinkP += dt / .17; blink = blinkP < 1 ? Math.abs(1 - 2 * blinkP) * .92 + .08 : 1; if (blinkP >= 1) blinkP = -1; }
       if (!drag) { yaw += (0 - yaw) * (1 - Math.exp(-dt * 1.6)); pitch += (0 - pitch) * (1 - Math.exp(-dt * 2)); }
       root.rotation.set(pitch, yaw, 0);
-      const energy = 1 - cur.sad * .6;
-      holder.position.y = fx.y; holder.scale.set(fx.sx, fx.sy, fx.sx); holder.rotation.set(0, fx.ry, fx.rz);
+      const energy = sleeping ? .4 : 1 - cur.sad * .6;
+      const dim = 1 - cur.night * .55;
+      hemi.intensity = lightBase.hemi * dim; key.intensity = lightBase.key * dim; rim.intensity = lightBase.rim * (1 - cur.night * .3); fill.intensity = lightBase.fill * dim;
+      holder.position.set(fx.x, fx.y, 0); holder.scale.set(fx.sx, fx.sy, fx.sx); holder.rotation.set(0, fx.ry, fx.rz);
 
       for (const k in creatures) {
         const c = creatures[k]; if (!c.wrap.visible) continue;
@@ -302,20 +321,55 @@
     }
     frame();
 
+    // Little accidents on the lily pad, with a fly buzzing round them
+    const POO = mat(0x8a5a33, { roughness: .35, clearcoat: .8 });
+    function buildPoo() {
+      const g = new T.Group();
+      g.add(sph(.24, POO, 1, .55, 1, 0, .12, 0));
+      g.add(sph(.18, POO, 1, .6, 1, .01, .27, 0));
+      g.add(sph(.12, POO, 1, .7, 1, -.01, .4, 0));
+      const tip = new T.Mesh(new T.ConeGeometry(.06, .14, 16), POO); tip.position.set(.02, .52, 0); tip.rotation.z = -.4; tip.castShadow = true; g.add(tip);
+      [-1, 1].forEach(s => { g.add(sph(.055, W, 1, 1, .7, s * .075, .28, .16)); g.add(sph(.028, P, 1, 1, .6, s * .075, .28, .2)); });
+      return g;
+    }
+    const messSlots = [[1.2, .02, .6], [-1.25, .02, .45], [.95, .02, -.85]].map(([x, y, z]) => {
+      const m = buildPoo(); m.position.set(x, y, z); m.rotation.y = -x * .35; m.visible = false; m.scale.setScalar(.001); m.userData.hp = 0; scene.add(m); return m;
+    });
+    const messFly = buildFly(); messFly.visible = false; scene.add(messFly);
+    let messRaf;
+    (function messLoop() {
+      messRaf = requestAnimationFrame(messLoop);
+      const live = messSlots.find(m => m.visible && m.userData.hp > 0);
+      messFly.visible = !!live;
+      if (live) {
+        const a = t * 3.2;
+        messFly.position.set(live.position.x + Math.cos(a) * .38, .62 + Math.sin(t * 7) * .06, live.position.z + Math.sin(a) * .38);
+        messFly.rotation.y = -a;
+        messFly.userData.w.forEach((w, i) => { w.rotation.x = Math.sin(t * 70 + i * Math.PI) * .7; });
+      }
+    })();
+
     function mouthWorld(c) { const v = new T.Vector3(); c.mouth.mg.getWorldPosition(v); return v; }
     function chomp() { tween(.55, p => { fx.open = Math.abs(Math.sin(p * Math.PI * 3)) * .9; fx.sy = 1 - Math.abs(Math.sin(p * Math.PI * 3)) * .04; }); }
-    function burst() {
+    function burst(at, n = 26, size = 1) {
       const cols = [0xffd23f, 0xff7eb6, 0x6f8cff, 0x7fe0a0, 0xff9a4d];
-      for (let i = 0; i < 26; i++) {
-        const m = sph(.06, mat(cols[i % cols.length], { clearcoat: 1, roughness: .2 }), 1, 1, .4);
-        root.add(m);
+      for (let i = 0; i < n; i++) {
+        const m = sph(.06 * size, mat(cols[i % cols.length], { clearcoat: 1, roughness: .2 }), 1, 1, .4);
+        scene.add(m);
         const a = Math.random() * Math.PI * 2, sp = 1.4 + Math.random() * 1.6, up = 2.5 + Math.random() * 2;
         const v = new T.Vector3(Math.cos(a) * sp, up, Math.sin(a) * sp * .6 + .4);
-        m.position.set(0, 1.2, 0);
-        tween(1.6, (p, dt) => { v.y -= 6 * dt; m.position.addScaledVector(v, dt); m.rotation.x += dt * 8; m.rotation.y += dt * 5; m.scale.setScalar(p > .8 ? (1 - p) / .2 : 1); }, () => root.remove(m), Math.random() * .1);
+        m.position.copy(at || new T.Vector3(0, 1.2, 0));
+        tween(1.6, (p, dt) => { v.y -= 6 * dt; m.position.addScaledVector(v, dt); m.rotation.x += dt * 8; m.rotation.y += dt * 5; m.scale.setScalar(p > .8 ? (1 - p) / .2 : 1); }, () => scene.remove(m), Math.random() * .1);
       }
     }
 
+    function applyMood() {
+      if (sleeping) { tgt.mouth = .25; tgt.eye = .06; tgt.sad = 0; tgt.look = .4; return; }
+      tgt.mouth = mood === 'happy' ? 1 : mood === 'sad' ? -.55 : .5;
+      tgt.eye = mood === 'sad' ? .66 : 1;
+      tgt.sad = mood === 'sad' ? .6 : mood === 'ok' ? .08 : 0;
+      tgt.look = mood === 'sad' ? 1 : 0;
+    }
     const api = {
       setStage(s, anim = true) {
         if (s === stage) return;
@@ -335,11 +389,43 @@
         }
         attachHat();
       },
-      setMood(m) {
-        tgt.mouth = m === 'happy' ? 1 : m === 'sad' ? -.55 : .5;
-        tgt.eye = m === 'sad' ? .66 : 1;
-        tgt.sad = m === 'sad' ? .6 : m === 'ok' ? .08 : 0;
-        tgt.look = m === 'sad' ? 1 : 0;
+      setMood(m) { mood = m; applyMood(); },
+      setSleep(on) {
+        if (on === sleeping) return;
+        sleeping = on; tgt.night = on ? 1 : 0; applyMood();
+      },
+      setMess(arr) {
+        messSlots.forEach((m, i) => {
+          const hp = (arr && arr[i]) || 0, was = m.userData.hp; m.userData.hp = hp;
+          const target = hp > 0 ? .55 + .45 * hp / 3 : 0;
+          if (hp === was) { if (hp > 0 && m.scale.x < .01) { m.visible = true; m.scale.setScalar(target); } return; }
+          const from = m.scale.x; m.visible = true;
+          tween(hp > was ? .7 : .35, p => m.scale.setScalar(Math.max(.001, from + (target - from) * (hp > was ? elastic(p) : E(p)))), () => { if (hp <= 0) m.visible = false; });
+          if (hp < was) burst(m.position.clone().setY(.4), hp > 0 ? 8 : 22, .7);
+        });
+      },
+      fart() {
+        const bm = new T.MeshPhysicalMaterial({ color: 0xb6f08c, transparent: true, opacity: .6, roughness: 0, clearcoat: 1 });
+        tween(.6, p => { const q = Math.sin(p * Math.PI); fx.sy = 1 - q * .06; fx.sx = 1 + q * .03; fx.squint = q * .9; fx.rz = Math.sin(p * Math.PI * 6) * .04 * (1 - p); });
+        for (let i = 0; i < 10; i++) {
+          const r = .09 + Math.random() * .14, side = i % 2 ? 1 : -1;
+          const b = new T.Mesh(new T.SphereGeometry(r, 20, 14), bm); root.add(b);
+          const x0 = side * (.75 + Math.random() * .4), z0 = -.55 - Math.random() * .3, ph = Math.random() * 6;
+          b.position.set(x0, .3, z0); b.scale.setScalar(.001);
+          tween(1.6 + Math.random() * .8, p => {
+            b.position.set(x0 + side * p * .6 + Math.sin(p * 7 + ph) * .1, .3 + p * 2.3, z0 + p * .3);
+            b.scale.setScalar(Math.max(.001, p < .12 ? p / .12 : p > .88 ? (1 - p) / .12 : 1));
+          }, () => root.remove(b), i * .05);
+        }
+      },
+      yawn() { tween(1.6, p => { const q = Math.sin(p * Math.PI); fx.open = q * .95; fx.squint = q * .85; fx.sy = 1 + q * .05; }); },
+      hopAway(away = 1.3) {
+        const D = 4.4, hop = p => Math.abs(Math.sin(p * Math.PI * 3)) * .45;
+        tween(1, p => { fx.x = E(p) * D; fx.y = hop(p); fx.ry = Math.PI / 2 * Math.min(1, p * 4); }, () => {
+          tween(away, () => { fx.x = D; }, () => {
+            tween(1, p => { fx.x = D * (1 - E(p)); fx.y = hop(p); fx.ry = -Math.PI / 2 * Math.min(1, (1 - p) * 4); });
+          });
+        });
       },
       setDirty(v) { tgt.dirty = Math.max(0, Math.min(1, v)); },
       setHat(kind) {
@@ -405,10 +491,11 @@
         }
       },
       celebrate() { api.react('celebrate'); burst(); },
+      burstAt(x, y, z, n) { burst(new T.Vector3(x, y, z), n); },
       burst,
       hitTest,
       destroy() {
-        cancelAnimationFrame(raf); ro.disconnect();
+        cancelAnimationFrame(raf); cancelAnimationFrame(messRaf); ro.disconnect();
         window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp);
         renderer.dispose(); try { renderer.forceContextLoss(); } catch (_) {}
         cv.remove();
