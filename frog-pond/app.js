@@ -3,6 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
+  const APP_VERSION = '2026-10-03.3'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -96,6 +97,7 @@
   let S = load();
   Sound.setMuted(!S.sound);
   function save() {
+    if (restoring) return;
     const o = {}; SAVED.forEach(k => { o[k] = S[k]; }); o.last = Date.now();
     try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {}
   }
@@ -689,12 +691,55 @@
     h += '<div class="pbox"><h3>Settings</h3>' +
       '<div class="setting">Sound effects and spoken words<button class="switch" id="pSound" aria-pressed="' + S.sound + '" aria-label="Sound"></button></div>' +
       '<button class="danger" id="pReset">' + (S.resetArm ? 'Tap again to start over with a new egg' : 'Start over with a new egg') + '</button>' +
-      '<p>Everything is saved in this browser on this device only. Clearing the browser’s data starts over.</p></div>';
+      '<p>App version ' + APP_VERSION + '. Updates never touch ' + esc(nm()) + '’s progress.</p></div>';
+    h += '<div class="pbox"><h3>Backup</h3>' +
+      '<p>Progress is saved on this device. Removing the app from the Home Screen or clearing website data would lose it, so keep a backup file somewhere safe. It is also the way to move ' + esc(nm()) + ' between Safari and the Home Screen app, or to a new device.</p>' +
+      '<div class="row2"><button class="ghostbtn" id="pBackup">Save a backup</button><button class="ghostbtn" id="pRestore">Restore a backup</button></div>' +
+      '<input type="file" id="pFile" accept=".json,application/json" hidden>' +
+      (S.restoreMsg ? '<p><b>' + esc(S.restoreMsg) + '</b></p>' : '') +
+      (lastBackup() ? '<p>Last backup: ' + when(lastBackup()) + '</p>' : '<p>No backup saved yet.</p>') + '</div>';
     $('parentBody').innerHTML = h;
     $('parentDone').onclick = () => set({ sheet: null, resetArm: false });
     $('pSound').onclick = () => { toggleSound(); renderParent(); };
     $('pReset').onclick = () => { if (!S.resetArm) { S.resetArm = true; renderParent(); return; } resetAll(); };
+    $('pBackup').onclick = backup;
+    $('pRestore').onclick = () => $('pFile').click();
+    $('pFile').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) restore(f); };
   }
+
+  // ---------- Backups ----------
+  const lastBackup = () => { try { return +localStorage.getItem(KEY + '-backup') || 0; } catch (e) { return 0; } };
+  async function backup() {
+    save();
+    const data = JSON.parse(localStorage.getItem(KEY) || '{}');
+    const json = JSON.stringify({ app: 'frog-pond', format: 1, saved: new Date().toISOString(), data }, null, 1);
+    const name = 'frog-pond-' + nm().replace(/[^\w-]+/g, '') + '-' + dayKey(new Date()) + '.json';
+    let done = false;
+    try {
+      const file = new File([json], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Frog Pond backup' }); done = true; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    if (!done) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+    try { localStorage.setItem(KEY + '-backup', String(Date.now())); } catch (e) {}
+    S.restoreMsg = 'Backup saved.'; renderParent();
+  }
+  function restore(file) {
+    const rd = new FileReader();
+    rd.onload = () => {
+      let d = null;
+      try { const o = JSON.parse(rd.result); d = o && o.app === 'frog-pond' ? o.data : null; } catch (e) {}
+      if (!d || typeof d !== 'object' || !d.needs || !d.stage) { S.restoreMsg = "That file isn't a Frog Pond backup."; renderParent(); return; }
+      if (!confirm('Replace the frog on this device with ' + (d.name || 'the frog') + ' from the backup?')) return;
+      d.last = Date.now(); // don't count time spent in the backup file as time away
+      try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { S.restoreMsg = 'Could not restore, storage is full.'; renderParent(); return; }
+      restoring = true; location.reload();
+    };
+    rd.readAsText(file);
+  }
+  let restoring = false;
   function toggleSound() { set({ sound: !S.sound }); Sound.setMuted(!S.sound); save(); if (S.sound) sfx('ribbit'); }
 
   // ---------- Build static bits ----------
@@ -1064,8 +1109,41 @@
   setInterval(decay, 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') decay(); else save(); });
 
+  // ---------- Staying up to date ----------
+  // A Home Screen app on iOS is often resumed rather than reloaded, so we check for a new
+  // version whenever it comes back into view and reload at a calm moment. The frog lives in
+  // localStorage, which updates and the service worker never touch.
+  let swReg = null, newVersion = null;
+  async function checkForUpdate() {
+    if (!/^https?:/.test(location.protocol)) return;
+    try {
+      const r = await fetch('./version.json?t=' + Date.now(), { cache: 'no-store' });
+      const v = r.ok ? (await r.json()).version : null;
+      if (v && v !== APP_VERSION) newVersion = v;
+    } catch (e) {}
+    if (swReg) swReg.update().catch(() => {});
+  }
+  function maybeReload() {
+    if (!newVersion || restoring) return;
+    let tried = null; try { tried = sessionStorage.getItem('fp-reloaded-for'); } catch (e) {}
+    if (tried === newVersion) return; // already reloaded once for this version; don't loop if a file is still catching up
+    const ae = document.activeElement;
+    if (S.sheet === 'game' || S.sheet === 'parent' || S.sheet === 'photo' || S.gate || S.busy || S.drag || S.celebrate || (ae && ae.tagName === 'INPUT')) return;
+    save();
+    try { sessionStorage.setItem('fp-reloaded-for', newVersion); } catch (e) {}
+    location.reload();
+  }
+  setInterval(maybeReload, 1000);
+  setInterval(checkForUpdate, 30 * 60e3);
+  setTimeout(checkForUpdate, 4000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
+  window.addEventListener('pageshow', e => { if (e.persisted) checkForUpdate(); });
+
+  // ask the browser to keep our storage even when the device is short of space
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
+
   try {
     if ('serviceWorker' in navigator && window.top === window && /^https?:/.test(location.protocol))
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(r => { swReg = r; }, () => {}));
   } catch (e) {}
 })();
