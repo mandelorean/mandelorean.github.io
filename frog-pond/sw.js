@@ -2,7 +2,7 @@
 // App files are fetched from the network first so a Home Screen app always gets the latest
 // version when online, and fall back to the cached copy when offline. It never touches
 // localStorage, where the frog and progress live.
-const VERSION = '2026-10-03.7'; // keep in step with version.json and app.js (bump-version.sh does all three)
+const VERSION = '2026-10-03.8'; // keep in step with version.json and app.js (bump-version.sh does all three)
 const CACHE = 'frogpond-' + VERSION;
 const CORE = ['./', './index.html', './app.css', './app.js', './sound.js', './learn.js', './frog-engine.js', './three.min.js', './manifest.json', './icon-192.png', './icon-512.png'];
 const NETWORK_TIMEOUT = 4000; // on a very slow connection, use the cached copy rather than wait

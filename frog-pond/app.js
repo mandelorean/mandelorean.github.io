@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-03.7'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-03.8'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -22,25 +22,25 @@
 
   // Shop: [id, name, price, colour, icon, extras]
   //   extras: treat (eaten straight away), need/needText (unlocked by learning), slot (clothes), auto (weather clothes), scene, note
-  const WARM = () => (wxFresh() ? WX.temp >= 15 : [4, 5, 6, 7].includes(new Date().getMonth()));
-  const CHILLY = () => (wxFresh() ? WX.temp <= 10 || wxKind() === 'snow' : [10, 11, 0, 1].includes(new Date().getMonth()));
-  const coldNow = () => wxFresh() && (WX.temp <= 8 || wxKind() === 'snow');
+  const WARM = () => (wxFresh() ? wx().temp >= 15 : [4, 5, 6, 7].includes(new Date().getMonth()));
+  const CHILLY = () => (wxFresh() ? wx().temp <= 10 || wxKind() === 'snow' : [10, 11, 0, 1].includes(new Date().getMonth()));
+  const coldNow = () => !FANTASY[S.scene] && (wxFresh() ? wx().temp <= 8 || wxKind() === 'snow' : S.scene === 'arctic');
   const SHOP = {
     treats: [['t_dragonfly', 'Dragonfly delight', 8, '#2FB7C9', 'emoji_nature', { treat: 'dragonfly', gifts: { food: 45, love: 5 }, line: 'A dragonfly! My favourite!' }],
       ['t_burger', 'Bug burger', 10, '#C8873A', 'lunch_dining', { treat: 'burger', gifts: { food: 40, fun: 15 }, line: 'A bug burger! Yum yum yum!' }],
       ['t_smoothie', 'Pond smoothie', 8, '#7fca78', 'local_drink', { treat: 'smoothie', gifts: { energy: 25, fun: 5 }, line: 'Slurp! I feel full of beans!' }],
-      ['t_lolly', 'Ice lolly', 6, '#FF8FC0', 'icecream', { treat: 'lolly', gifts: { fun: 20, food: 10 }, ok: WARM, okText: 'Only when it’s warm in Fleet', line: 'Brain freeze! Hee hee.' }],
-      ['t_cocoa', 'Hot chocolate', 6, '#8B5A3C', 'coffee', { treat: 'cocoa', gifts: { love: 15, energy: 10 }, ok: CHILLY, okText: 'Only when it’s chilly in Fleet', line: 'Mmm, warm and cosy!' }],
+      ['t_lolly', 'Ice lolly', 6, '#FF8FC0', 'icecream', { treat: 'lolly', gifts: { fun: 20, food: 10 }, ok: WARM, okText: 'Only when it’s warm where he is', line: 'Brain freeze! Hee hee.' }],
+      ['t_cocoa', 'Hot chocolate', 6, '#8B5A3C', 'coffee', { treat: 'cocoa', gifts: { love: 15, energy: 10 }, ok: CHILLY, okText: 'Only when it’s chilly where he is', line: 'Mmm, warm and cosy!' }],
       ['t_cake', 'Birthday cake', 15, '#FFB3D1', 'cake', { treat: 'cake', gifts: { food: 20, fun: 20, love: 20 }, line: 'Cake! Is it a party? Hooray!' }]],
     hats: [['none', 'No hat', 0, '#C9CFC6', 'block'], ['crown', 'Crown', 0, '#F5C542', 'workspace_premium'], ['bow', 'Bow', 0, '#FF7EB6', 'favorite'],
       ['party', 'Party hat', 0, '#6F8CFF', 'celebration'], ['flower', 'Flower', 0, '#FFA6CF', 'local_florist'], ['cap', 'Cap', 20, '#E84545', 'sports_baseball'],
-      ['sunnies', 'Sunnies', 25, '#FF4D7D', 'visibility'], ['bobble', 'Bobble hat', 25, '#E23B3B', 'ac_unit', { note: 'Puts it on when it’s cold in Fleet' }],
+      ['sunnies', 'Sunnies', 25, '#FF4D7D', 'visibility'], ['bobble', 'Bobble hat', 25, '#E23B3B', 'ac_unit', { note: 'Puts it on when it’s cold where he is' }],
       ['wizard', 'Wizard hat', 30, '#6B4BD6', 'auto_fix_high'], ['tiara', 'Tiara', 35, '#9FB4CC', 'diamond'],
       ['mortar', 'Graduation cap', 50, '#1F2A22', 'school', { need: s => !!s.stickers.timesall, needText: 'Win the Tables legend sticker' }],
       ['bee', 'Bee antennae', 50, '#F5B915', 'emoji_nature', { need: s => (s.stars['spell:y56'] || 0) >= 3, needText: '3 stars at Year 5 and 6 spelling' }]],
     clothes: [['scarf', 'Woolly scarf', 25, '#E23B3B', 'checkroom', { slot: 'neck', note: 'Also puts it on when it’s cold' }], ['bowtie', 'Bow tie', 20, '#6F8CFF', 'style', { slot: 'neck' }],
       ['cape', 'Superhero cape', 30, '#E84545', 'bolt', { slot: 'neck' }], ['glasses', 'Maths glasses', 25, '#1F2A22', 'eyeglasses', { slot: 'face' }],
-      ['wellies', 'Wellies', 30, '#F5C542', 'water_drop', { auto: 'rain', note: 'Wears them when it rains in Fleet' }], ['umbrella', 'Umbrella', 35, '#FF5C8A', 'beach_access', { auto: 'rain', note: 'Uses it when it rains in Fleet' }]],
+      ['wellies', 'Wellies', 30, '#F5C542', 'water_drop', { auto: 'rain', note: 'Wears them when it rains where he is' }], ['umbrella', 'Umbrella', 35, '#FF5C8A', 'beach_access', { auto: 'rain', note: 'Uses it when it rains in Fleet' }]],
     colours: [],
     toys: [['ball', 'Beach ball', 25, '#FF6B6B', 'sports_volleyball'], ['wand', 'Bubble wand', 25, '#6fb6ff', 'bubble_chart'], ['kite', 'Kite', 35, '#a780e6', 'air'],
       ['trampoline', 'Mini trampoline', 40, '#6F8CFF', 'sports_gymnastics'], ['radio', 'Radio', 45, '#ea942f', 'radio']],
@@ -111,47 +111,59 @@
   const sfx = n => window.Sound && Sound.play(n);
   const isNight = () => { const h = londonMins() / 60; return h >= 19 || h < 6; };
   const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  // ---------- Real time and weather in Fleet, Hampshire ----------
-  // Weather comes from Open-Meteo (free, no account). Only Fleet's coordinates are sent.
-  const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=51.2834&longitude=-0.8412&current=temperature_2m,weather_code,is_day,wind_speed_10m&daily=sunrise,sunset&timezone=Europe%2FLondon&forecast_days=1';
-  let WX = null; try { WX = JSON.parse(localStorage.getItem('fp-weather')); } catch (e) {}
-  function londonMins() {
+  // ---------- Real time and weather for wherever the frog is ----------
+  // Weather and sunrise/sunset come from Open-Meteo (free, no account). Only the place's coordinates are sent.
+  // The pond and garden are in Fleet; the other real places use their own weather and local time.
+  const PLACES = {
+    fleet: { name: 'Fleet', lat: 51.2834, lon: -0.8412, tz: 'Europe/London' },
+    seaside: { name: 'St Ives', lat: 50.2112, lon: -5.4797, tz: 'Europe/London' },
+    rainforest: { name: 'the Amazon', short: 'Amazon', lat: -3.119, lon: -60.0217, tz: 'America/Manaus', climate: 'drizzle' },
+    arctic: { name: 'Svalbard', lat: 78.2232, lon: 15.6267, tz: 'Arctic/Longyearbyen', climate: 'snow' },
+    desert: { name: 'Giza', lat: 29.9792, lon: 31.1342, tz: 'Africa/Cairo' },
+    paris: { name: 'Paris', lat: 48.8566, lon: 2.3522, tz: 'Europe/Paris' },
+    london: { name: 'London', lat: 51.5072, lon: -0.1276, tz: 'Europe/London' }
+  };
+  const loc = () => (PLACES[S.scene] ? S.scene : 'fleet');
+  const place = () => PLACES[loc()];
+  const placeName = () => place().short || place().name;
+  let WXS = {}; try { WXS = JSON.parse(localStorage.getItem('fp-weather2')) || {}; } catch (e) {}
+  const wx = () => WXS[loc()] || null;
+  function localMins(tz) {
     try {
-      const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+      const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
       const g = t => +p.find(x => x.type === t).value; return g('hour') * 60 + g('minute');
     } catch (e) { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
   }
-  const wxFresh = () => !!(WX && Date.now() - WX.t < 6 * 3600e3);
+  const londonMins = () => localMins('Europe/London'); // bedtime always follows home time
+  const wxFresh = () => !!(wx() && Date.now() - wx().t < 6 * 3600e3);
   const toMins = iso => { const t = String(iso).split('T')[1].split(':'); return +t[0] * 60 + +t[1]; };
   // rough Fleet sunrise/sunset by month (UK clock time) for when we have no forecast yet
   const SUN = [[485, 975], [450, 1030], [390, 1080], [385, 1190], [330, 1240], [290, 1280], [310, 1270], [355, 1220], [405, 1150], [450, 1085], [440, 980], [480, 955]];
   function skyPhase() {
-    const m = londonMins(), mo = new Date().getMonth();
-    let rise = SUN[mo][0], set = SUN[mo][1];
-    if (wxFresh() && WX.sunrise) { rise = toMins(WX.sunrise); set = toMins(WX.sunset); }
+    const P = place(), W = wx(), m = localMins(P.tz), mo = new Date().getMonth();
+    let rise = loc() === 'fleet' || P.tz === 'Europe/London' ? SUN[mo][0] : 390, set = loc() === 'fleet' || P.tz === 'Europe/London' ? SUN[mo][1] : 1110;
+    if (wxFresh()) {
+      // polar night or midnight sun (Svalbard!) has no sunrise or sunset: just use day/night
+      if (!W.sunrise || !W.sunset || W.sunrise === W.sunset) return W.day ? 'day' : 'night';
+      rise = toMins(W.sunrise); set = toMins(W.sunset);
+    }
     return m >= rise - 30 && m < rise + 60 ? 'dawn' : m >= rise + 60 && m < set - 60 ? 'day' : m >= set - 60 && m < set + 30 ? 'dusk' : 'night';
   }
   function wxKind() {
-    if (!wxFresh()) return 'clear';
-    const c = WX.code;
+    if (!wxFresh()) return place().climate || 'clear';
+    const c = wx().code;
     return c <= 1 ? 'clear' : c === 2 ? 'partly' : c === 3 ? 'cloudy' : c === 45 || c === 48 ? 'fog' : c >= 51 && c <= 57 ? 'drizzle'
       : (c >= 61 && c <= 67) || (c >= 80 && c <= 82) ? 'rain' : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'snow' : c >= 95 ? 'storm' : 'cloudy';
   }
-  const isRainy = () => ['rain', 'drizzle', 'storm'].includes(wxKind());
-  // places change the sky: made-up places have their own, real places follow Fleet's clock
+  const isRainy = () => !FANTASY[S.scene] && ['rain', 'drizzle', 'storm'].includes(wxKind());
+  // made-up places have their own sky; real places use their own weather and clock
   const FANTASY = { space: 'night', disco: 'night', spooky: 'night', underwater: 'day', candy: 'day' };
   const scenePhase = () => FANTASY[S.scene] || skyPhase();
-  function sceneWeather() {
-    const sc = S.scene, k = wxKind();
-    if (FANTASY[sc] || sc === 'desert') return 'clear';
-    if (sc === 'arctic') return 'snow';
-    if (sc === 'rainforest') return k === 'rain' || k === 'storm' ? k : 'drizzle';
-    return k;
-  }
+  const sceneWeather = () => (FANTASY[S.scene] ? 'clear' : wxKind());
   const SCENE_LINES = {
     garden: ['What a lovely garden!', 'I can smell the flowers!'], seaside: ['I can hear the waves!', 'Look, a starfish!'],
     rainforest: ["I'm soaking wet! Drip drip drip.", 'Ooh, I can hear a toucan!', "It's so rainy in the rainforest!"],
-    arctic: ["B-b-b-brrr! It's f-f-freezing!", 'Look, penguins! Hello, penguins!', 'My toes are like ice lollies!'],
+    arctic: ["B-b-b-brrr! It's f-f-freezing!", 'Look, a polar bear! Hello, polar bear!', 'My toes are like ice lollies!', 'Did you know? Penguins live at the South Pole, not up here!'],
     desert: ["Phew! It's sooo hot!", 'Is that a pyramid? Wow!', 'I need a drink of water!'],
     paris: ['Bonjour! Do you like my moustache?', 'Ooh la la! The Eiffel Tower!', 'Croissant, anyone? Ribbit!'],
     london: ['Fancy a cup of tea?', "Look, it's Big Ben!", 'Shall we ride the red bus?'],
@@ -171,29 +183,47 @@
     if (id === 'space') setTimeout(() => sfx('whoosh'), 200);
   }
   const WX_ICON = { clear: ['wb_sunny', 'dark_mode'], partly: ['partly_cloudy_day', 'partly_cloudy_night'], cloudy: ['cloud', 'cloud'], fog: ['foggy', 'foggy'], drizzle: ['rainy', 'rainy'], rain: ['rainy', 'rainy'], snow: ['ac_unit', 'ac_unit'], storm: ['thunderstorm', 'thunderstorm'] };
-  async function fetchWeather() {
+  const fetching = {};
+  async function fetchWeather(force) {
+    const key = loc(), P = PLACES[key];
+    if (FANTASY[S.scene] || fetching[key] || (!force && WXS[key] && Date.now() - WXS[key].t < 10 * 60e3)) return;
+    fetching[key] = true;
     try {
-      const r = await fetch(WX_URL, { cache: 'no-store' }); if (!r.ok) return;
-      const j = await r.json(), c = j.current;
-      WX = { t: Date.now(), code: c.weather_code, day: c.is_day, temp: Math.round(c.temperature_2m), wind: c.wind_speed_10m, sunrise: j.daily.sunrise[0], sunset: j.daily.sunset[0] };
-      try { localStorage.setItem('fp-weather', JSON.stringify(WX)); } catch (e) {}
+      const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + P.lat + '&longitude=' + P.lon +
+        '&current=temperature_2m,weather_code,is_day,wind_speed_10m&daily=sunrise,sunset&timezone=' + encodeURIComponent(P.tz) + '&forecast_days=1';
+      const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) return;
+      const j = await r.json(), c = j.current, d = j.daily || {};
+      WXS[key] = { t: Date.now(), code: c.weather_code, day: c.is_day, temp: Math.round(c.temperature_2m), wind: c.wind_speed_10m, sunrise: d.sunrise && d.sunrise[0], sunset: d.sunset && d.sunset[0] };
+      try { localStorage.setItem('fp-weather2', JSON.stringify(WXS)); } catch (e) {}
       const today = dayKey(new Date());
       if (isRainy() && S.stage !== 'egg' && S.stats.rainDay !== today) { S.stats.rainDay = today; count('rainyDays'); save(); checkStickers(); }
       render();
-    } catch (e) {}
+    } catch (e) {} finally { fetching[key] = false; }
+  }
+  // "3pm", "half past 7 in the morning" style local time for faraway places
+  function localTimeWords() {
+    const m = localMins(place().tz), h = Math.floor(m / 60), h12 = h % 12 || 12;
+    return h12 + (m % 60 >= 30 ? ':30' : '') + (h < 12 ? 'am' : 'pm');
   }
   function weatherLine() {
-    if (!wxFresh()) return null;
-    const k = wxKind(), t = WX.temp, night = skyPhase() === 'night';
-    const temp = ' It\'s ' + t + '°C in Fleet.';
+    if (FANTASY[S.scene] || !wxFresh()) return null;
+    const k = wxKind(), t = wx().temp, night = skyPhase() === 'night', where = place().name, P = place();
+    if (P.tz !== 'Europe/London' && Math.floor(Date.now() / 20000) % 2 === 0)
+    {
+      const h = localMins(P.tz) / 60, polar = !wx().sunrise || wx().sunrise === wx().sunset;
+      if (polar && night && h >= 9 && h < 18) return "It's " + localTimeWords() + ' in ' + where + ' but it’s dark! In winter the sun doesn’t come up there at all.';
+      if (polar && !night && (h >= 22 || h < 5)) return "It's " + localTimeWords() + ' in ' + where + ' and the sun is still up! It never sets there in summer.';
+      return "It's " + localTimeWords() + ' in ' + where + ' right now!' + (night ? ' Shh, everyone is asleep.' : '');
+    }
+    const temp = ' It\'s ' + t + '°C in ' + where + '.';
     if (k === 'storm') return 'Thunder! I\'ll stay snug on my lily pad.' + temp;
-    if (k === 'snow') return 'Snow in Fleet! Brrr!' + temp;
-    if (k === 'rain' || k === 'drizzle') return 'It\'s raining in Fleet! Frogs love the rain.';
-    if (k === 'fog') return 'Ooh, it\'s all foggy in Fleet. Spooky!';
-    if (t <= 3) return 'Brrr, it\'s only ' + t + '°C! Good job I have a warm pond.';
-    if (t >= 25) return 'Phew, it\'s ' + t + '°C! Lucky I live in a pond.';
-    if (night) return k === 'clear' ? 'Look at all the stars over Fleet tonight!' : 'It\'s a cloudy night in Fleet.';
-    return k === 'clear' ? 'What a sunny day in Fleet!' + temp : k === 'partly' ? 'Sun and clouds in Fleet today.' + temp : 'It\'s a cloudy day in Fleet.' + temp;
+    if (k === 'snow') return 'Snow in ' + where + '! Brrr!' + temp;
+    if (k === 'rain' || k === 'drizzle') return 'It\'s raining in ' + where + '! Frogs love the rain.';
+    if (k === 'fog') return 'Ooh, it\'s all foggy in ' + where + '. Spooky!';
+    if (t <= 3) return 'Brrr, it\'s only ' + t + '°C in ' + where + '!';
+    if (t >= 25) return 'Phew, it\'s ' + t + '°C in ' + where + '! Lucky I live in a pond.';
+    if (night) return k === 'clear' ? 'Look at all the stars over ' + where + ' tonight!' : 'It\'s a cloudy night in ' + where + '.';
+    return k === 'clear' ? 'What a sunny day in ' + where + '!' + temp : k === 'partly' ? 'Sun and clouds in ' + where + ' today.' + temp : 'It\'s a cloudy day in ' + where + '.' + temp;
   }
   const starStr = n => '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
 
@@ -258,9 +288,9 @@
     const cold = coldNow(), wet = isRainy();
     engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(S.owned.bobble && cold ? 'bobble' : S.hat);
     engine.setOutfit({ neck: S.owned.scarf && cold ? 'scarf' : S.neck, face: S.face, feet: S.owned.wellies && wet ? 'wellies' : 'none', umbrella: !!(S.owned.umbrella && wet) });
-    engine.setWind(WX && WX.wind);
+    engine.setWind(wx() && wx().wind);
     const auto = [S.owned.bobble && cold && 'bobble', S.owned.scarf && cold && 'scarf', S.owned.wellies && wet && 'wellies', S.owned.umbrella && wet && 'umbrella'].filter(Boolean).join();
-    if (autoWear !== null && auto !== autoWear && auto && S.stage !== 'egg') setTimeout(() => say(wet ? "It's raining in Fleet! " + (S.owned.wellies ? 'Wellies on!' : 'Umbrella up!') : "Brrr, it's cold in Fleet! Wrapping up warm.", 3000), 50);
+    if (autoWear !== null && auto !== autoWear && auto && S.stage !== 'egg') setTimeout(() => say(wet ? "It's raining in " + place().name + '! ' + (S.owned.wellies ? 'Wellies on!' : 'Umbrella up!') : "Brrr, it's cold in Fleet! Wrapping up warm.", 3000), 50);
     autoWear = auto;
     engine.setDirty(S.needs.clean < 40 ? (40 - S.needs.clean) / 40 : 0);
     engine.setMess(S.mess); engine.setExtras(S.stage === 'egg' ? {} : S.decor);
@@ -983,7 +1013,7 @@
       '<div class="setting">Sound effects and spoken words<button class="switch" id="pSound" aria-pressed="' + S.sound + '" aria-label="Sound"></button></div>' +
       '<button class="danger" id="pReset">' + (S.resetArm ? 'Tap again to start over with a new egg' : 'Start over with a new egg') + '</button>' +
       '<p>App version ' + APP_VERSION + '. Updates never touch ' + esc(nm()) + '’s progress.</p>' +
-      '<p>The sky follows the time and weather in Fleet, Hampshire, from Open-Meteo. Only Fleet’s location is sent, nothing about ' + esc(nm()) + '.</p></div>';
+      '<p>The sky follows the real time and weather where the frog is (Fleet, Hampshire for the pond and garden; St Ives, the Amazon, Svalbard, Giza, Paris or London for those places), from Open-Meteo. Only the place’s location is sent, nothing about ' + esc(nm()) + '.</p></div>';
     h += '<div class="pbox"><h3>Backup</h3>' +
       '<p>Progress is saved on this device. Removing the app from the Home Screen or clearing website data would lose it, so keep a backup file somewhere safe. It is also the way to move ' + esc(nm()) + ' between Safari and the Home Screen app, or to a new device.</p>' +
       '<div class="row2"><button class="ghostbtn" id="pBackup">Save a backup</button><button class="ghostbtn" id="pRestore">Restore a backup</button></div>' +
@@ -1047,7 +1077,10 @@
       hz = peaks('L0 24 L30 6 L55 20 L80 2 L110 22 L140 10 L170 26 L200 12 L235 28 L265 8 L300 24 L330 14 L360 28 L400 16', '#f4fbff') + peaks('L0 32 L40 22 L70 30 L110 26 L150 33 L200 24 L250 32 L300 27 L350 34 L400 28', '#cfe6f2') +
         '<path d="M300 40 A14 14 0 0 1 328 40 Z" fill="#ffffff"/><path d="M309 40 A5 5 0 0 1 319 40 Z" fill="#7aa7bf"/><path d="M302 34 L326 34 M304 30 L324 30" stroke="#cfe6f2" stroke-width=".8"/>';
       corner = side => side ? '<rect x="8" y="88" width="40" height="32" rx="4" fill="#e6f6ff"/><rect x="40" y="96" width="30" height="24" rx="4" fill="#cfe9f7"/>' :
-        [[30, 80], [58, 90]].map(([x, y], i) => '<ellipse cx="' + x + '" cy="' + (y + 12) + '" rx="' + (12 - i * 2) + '" ry="' + (20 - i * 3) + '" fill="#1b1b24"/><ellipse cx="' + x + '" cy="' + (y + 16) + '" rx="' + (7 - i) + '" ry="' + (13 - i * 2) + '" fill="#fff"/><circle cx="' + (x - 3) + '" cy="' + (y - 2) + '" r="1.6" fill="#fff"/><circle cx="' + (x + 3) + '" cy="' + (y - 2) + '" r="1.6" fill="#fff"/><path d="M' + (x - 3) + ' ' + (y + 2) + ' L' + x + ' ' + (y + 6) + ' L' + (x + 3) + ' ' + (y + 2) + ' Z" fill="#ff9a2a"/><ellipse cx="' + (x - 5) + '" cy="' + (y + 32 - i * 3) + '" rx="4" ry="2" fill="#ff9a2a"/><ellipse cx="' + (x + 5) + '" cy="' + (y + 32 - i * 3) + '" rx="4" ry="2" fill="#ff9a2a"/>').join('');
+        // a polar bear (penguins live at the other end of the world!)
+        '<ellipse cx="40" cy="98" rx="30" ry="17" fill="#f3f6fa"/><rect x="18" y="104" width="10" height="16" rx="4" fill="#f3f6fa"/><rect x="50" y="104" width="10" height="16" rx="4" fill="#f3f6fa"/>' +
+        '<circle cx="70" cy="86" r="12" fill="#f3f6fa"/><circle cx="64" cy="75" r="4" fill="#e3e9f0"/><ellipse cx="80" cy="89" rx="7" ry="5" fill="#f3f6fa"/><circle cx="86" cy="88" r="2.2" fill="#1b1b24"/><circle cx="72" cy="83" r="1.6" fill="#1b1b24"/>' +
+        '<path d="M14 98 Q30 90 44 96" stroke="#dfe7ef" stroke-width="2" fill="none"/>';
       fx = '<div class="aurora"></div>';
     } else if (scene === 'desert') {
       hz = '<path d="M0 40 L0 26 Q60 10 120 24 Q180 36 240 22 Q300 10 360 22 Q385 27 400 24 L400 40 Z" fill="#e8c27a"/><path d="M0 40 L0 32 Q80 24 160 34 Q240 40 320 30 Q370 26 400 32 L400 40 Z" fill="#d6a95c"/>';
@@ -1274,14 +1307,14 @@
 
     // sky
     const ph = scenePhase(), wk = sceneWeather(), wet = ['rain', 'drizzle', 'storm'].includes(wk), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene + (FANTASY[S.scene] ? ' fantasy' : '');
-    if (builtScene !== S.scene) buildScenery(S.scene);
+    if (builtScene !== S.scene) { buildScenery(S.scene); fetchWeather(); }
     if ($('pond').className !== cls) $('pond').className = cls;
     const orb = S.scene === 'spooky' ? 'moon full' : FANTASY[S.scene] ? '' : S.scene === 'desert' ? 'sun big' : wk === 'clear' || wk === 'partly' ? (ph === 'night' ? 'moon' : 'sun') : '';
     if ($('orb').className !== 'sky-orb ' + orb) $('orb').className = 'sky-orb ' + orb;
     $('orb').hidden = !orb;
     show('fireflies', (ph === 'night' || ph === 'dusk') && !wet && wk !== 'snow'); show('rain', wet);
-    show('wx', hatched && wxFresh());
-    if (wxFresh()) { const rk = wxKind(); text($('wxIcon'), WX_ICON[rk][skyPhase() === 'night' ? 1 : 0]); text($('wxTemp'), WX.temp + '°C Fleet'); }
+    show('wx', hatched && wxFresh() && !FANTASY[S.scene]);
+    if (wxFresh()) { text($('wxIcon'), WX_ICON[wk][ph === 'night' ? 1 : 0]); text($('wxTemp'), wx().temp + '°C ' + placeName()); }
 
     show('head', hatched); show('dock', hatched); show('speech', hatched); show('eggSheet', !hatched);
     show('night', hatched && S.asleep); show('zzz', hatched && S.asleep); show('looSign', !!S.away);
@@ -1568,8 +1601,8 @@
     location.reload();
   }
   setInterval(maybeReload, 1000);
-  fetchWeather(); setInterval(fetchWeather, 20 * 60e3);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !(WX && Date.now() - WX.t < 10 * 60e3)) fetchWeather(); });
+  fetchWeather(); setInterval(() => fetchWeather(true), 20 * 60e3);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchWeather(); });
   setInterval(checkForUpdate, 30 * 60e3);
   setTimeout(checkForUpdate, 4000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
