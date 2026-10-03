@@ -142,9 +142,33 @@
       });
       return { kind: 'egg', g, mats: [], eyes: [], mouth: null, mud: [], eggs, anchor: new T.Group() };
     }
-    function buildHat(kind) {
+    function buildHat(kind, ck) {
       const h = new T.Group();
-      if (kind === 'crown') {
+      if (kind === 'wizard') {
+        const pm = mat(0x6b4bd6), gold = mat(0xffd23f, { metalness: .4, roughness: .3, clearcoat: 1 });
+        const brim = new T.Mesh(new T.CylinderGeometry(.44, .44, .03, 40), pm); brim.position.y = .02; brim.castShadow = true;
+        const cone = new T.Mesh(new T.ConeGeometry(.29, .8, 40), pm); cone.position.y = .42; cone.castShadow = true;
+        const w = new T.Group(); w.rotation.set(-.12, 0, -.14); w.add(brim, cone); h.add(w);
+        [[.13, .3, .22], [-.12, .5, .15], [.05, .66, .1], [-.18, .2, .2]].forEach(([x, y, z]) => { const st = new T.Mesh(new T.OctahedronGeometry(.045), gold); st.position.set(x, y, z); w.add(st); });
+      } else if (kind === 'cap') {
+        const red = mat(0xe84545);
+        const dome = new T.Mesh(new T.SphereGeometry(.31, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), red); dome.scale.set(1, .8, 1); dome.castShadow = true; h.add(dome);
+        const brim = new T.Mesh(new T.CylinderGeometry(.3, .3, .025, 32), red); brim.scale.set(.85, 1, .75); brim.position.set(0, .01, .3); brim.rotation.x = .12; h.add(brim);
+        h.add(sph(.04, mat(0xffffff), 1, .6, 1, 0, .25, 0));
+      } else if (kind === 'tiara') {
+        const silver = mat(0xe3e9f2, { metalness: .7, roughness: .2, clearcoat: 1 });
+        const arc = new T.Mesh(new T.TorusGeometry(.26, .022, 10, 40, Math.PI), silver); arc.position.set(0, .02, .08); arc.rotation.x = -.35; h.add(arc);
+        [[0, .28, .05, 0x7fd4ff, .06], [-.17, .22, .05, 0xff7eb6, .04], [.17, .22, .05, 0xff7eb6, .04]].forEach(([x, y, z, c, r]) => h.add(sph(r, mat(c, { roughness: .05, clearcoat: 1 }), 1, 1, .7, x, y, z)));
+      } else if (kind === 'sunnies') {
+        // lens centres relative to the head anchor, per creature
+        const L = ck === 'tad' ? { x: .42, y: -.33, z: 1.05, r: .25 } : { x: .48, y: -.1, z: .8, r: .26 };
+        const lensM = mat(0x1b1b26, { roughness: .05, clearcoat: 1 }), frameM = mat(0xff4d7d);
+        [-1, 1].forEach(s => {
+          const lens = new T.Mesh(new T.CylinderGeometry(L.r, L.r, .04, 32), lensM); lens.rotation.x = Math.PI / 2; lens.position.set(s * L.x, L.y, L.z); h.add(lens);
+          const rim = new T.Mesh(new T.TorusGeometry(L.r, .03, 8, 32), frameM); rim.position.set(s * L.x, L.y, L.z + .01); h.add(rim);
+        });
+        const bridge = new T.Mesh(new T.CylinderGeometry(.025, .025, L.x * 2 - L.r * 2 + .06, 8), frameM); bridge.rotation.z = Math.PI / 2; bridge.position.set(0, L.y + .05, L.z + .02); h.add(bridge);
+      } else if (kind === 'crown') {
         const gold = mat(0xf5c542, { metalness: .55, roughness: .25, clearcoat: 1, side: T.DoubleSide });
         const band = new T.Mesh(new T.CylinderGeometry(.3, .34, .24, 28, 1, true), gold); band.position.y = .12; band.castShadow = true; h.add(band);
         for (let i = 0; i < 5; i++) {
@@ -210,7 +234,7 @@
     const fx = {};
     const tgt = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0, night: 0 };
     const cur = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0, night: 0 };
-    let mood = 'ok', sleeping = false;
+    let mood = 'ok', sleeping = false, dayMul = 1;
     const lightBase = { hemi: hemi.intensity, key: key.intensity, rim: rim.intensity, fill: fill.intensity };
     const look = { x: 0, y: 0 }, lookCur = { x: 0, y: 0 };
     let yaw = 0, pitch = 0, drag = null;
@@ -296,7 +320,7 @@
       if (!drag) { yaw += (0 - yaw) * (1 - Math.exp(-dt * 1.6)); pitch += (0 - pitch) * (1 - Math.exp(-dt * 2)); }
       root.rotation.set(pitch, yaw, 0);
       const energy = sleeping ? .4 : 1 - cur.sad * .6;
-      const dim = 1 - cur.night * .55;
+      const dim = (1 - cur.night * .55) * dayMul;
       hemi.intensity = lightBase.hemi * dim; key.intensity = lightBase.key * dim; rim.intensity = lightBase.rim * (1 - cur.night * .3); fill.intensity = lightBase.fill * dim;
       holder.position.set(fx.x, fx.y, 0); holder.scale.set(fx.sx, fx.sy, fx.sx); holder.rotation.set(0, fx.ry, fx.rz);
 
@@ -336,9 +360,79 @@
       const m = buildPoo(); m.position.set(x, y, z); m.rotation.y = -x * .35; m.visible = false; m.scale.setScalar(.001); m.userData.hp = 0; scene.add(m); return m;
     });
     const messFly = buildFly(); messFly.visible = false; scene.add(messFly);
+
+    // Pond decorations and friends you can buy in the shop
+    const PAD_Y = .016;
+    function lilyFlower(x, z, s) {
+      const g = new T.Group(); g.position.set(x, PAD_Y, z); g.scale.setScalar(s);
+      const pm = mat(0xffa6cf);
+      for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2, p = sph(.09, pm, 1, .35, 2); p.position.set(Math.cos(a) * .11, .06, Math.sin(a) * .11); p.rotation.y = -a + Math.PI / 2; p.rotation.x = .5; g.add(p); }
+      g.add(sph(.06, mat(0xffd23f), 1, .7, 1, 0, .08, 0));
+      return g;
+    }
+    function buildExtra(k) {
+      const g = new T.Group();
+      if (k === 'flowers') [[60, .9], [120, .8], [200, 1], [250, .85], [300, .95]].forEach(([d, s]) => { const a = d * Math.PI / 180; g.add(lilyFlower(Math.cos(a) * 1.75, Math.sin(a) * 1.75, s)); });
+      if (k === 'mushroom') {
+        g.position.set(-1.5, PAD_Y, -.4);
+        const stem = new T.Mesh(new T.CylinderGeometry(.07, .09, .3, 16), mat(0xf4eedd)); stem.position.y = .15; stem.castShadow = true; g.add(stem);
+        const cap = new T.Mesh(new T.SphereGeometry(.24, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xe8443a)); cap.position.y = .27; cap.scale.y = .75; cap.castShadow = true; g.add(cap);
+        [[.1, .4, .08], [-.09, .38, .12], [0, .44, -.08], [.14, .33, -.08], [-.15, .33, -.04]].forEach(([x, y, z]) => g.add(sph(.035, mat(0xffffff), 1, .5, 1, x, y, z)));
+      }
+      if (k === 'reeds') {
+        [[1.25, -1.15, 1.6], [1.45, -.95, 1.3], [1.05, -1.35, 1.75], [-1.15, -1.2, 1.55], [-1.35, -1.0, 1.25]].forEach(([x, z, hgt]) => {
+          const st = new T.Mesh(new T.CylinderGeometry(.018, .022, hgt, 8), mat(0x5aa04a)); st.position.set(x, hgt / 2, z); st.rotation.z = (x > 0 ? -1 : 1) * .06; st.castShadow = true; g.add(st);
+          const top = new T.Mesh(new T.CapsuleGeometry(.05, .2, 4, 12), mat(0x7a4a2a)); top.position.set(x - st.rotation.z * hgt / 2, hgt * .88, z); top.rotation.z = st.rotation.z; g.add(top);
+        });
+      }
+      if (k === 'lantern') {
+        g.position.set(1.6, PAD_Y, -.2);
+        const post = new T.Mesh(new T.CylinderGeometry(.03, .04, .62, 10), mat(0x2b2b33)); post.position.y = .31; g.add(post);
+        const glassM = new T.MeshPhysicalMaterial({ color: 0xffe28a, emissive: 0xffc34d, emissiveIntensity: 1.2, roughness: .2 });
+        const glass = new T.Mesh(new T.BoxGeometry(.16, .2, .16), glassM); glass.position.y = .72; g.add(glass);
+        const roof = new T.Mesh(new T.ConeGeometry(.14, .12, 4), mat(0x2b2b33)); roof.position.y = .88; roof.rotation.y = Math.PI / 4; g.add(roof);
+        const pl = new T.PointLight(0xffc870, .6, 3.2); pl.position.y = .72; g.add(pl);
+        g.userData.light = pl; g.userData.glass = glassM;
+      }
+      if (k === 'ladybird') {
+        const red = mat(0xe8302a, { roughness: .2, clearcoat: 1 }), blk = mat(0x15151b);
+        g.add(sph(.1, red, 1, .6, 1.2, 0, .05, 0));
+        g.add(sph(.05, blk, 1, .8, 1, 0, .04, .12));
+        [[.04, .09, .03], [-.04, .09, .03], [.05, .08, -.06], [-.05, .08, -.06], [0, .1, -.1]].forEach(([x, y, z]) => g.add(sph(.022, blk, 1, .5, 1, x, y, z)));
+      }
+      if (k === 'snail') {
+        const body = mat(0xc9b28f), shell = mat(0xc77a3c, { clearcoat: .8 });
+        g.add(sph(.08, body, 2.6, .55, 1, 0, .04, 0));
+        const sh = new T.Mesh(new T.TorusGeometry(.09, .06, 12, 24), shell); sh.position.set(-.05, .16, 0); sh.castShadow = true; g.add(sh);
+        g.add(sph(.05, shell, 1, 1, .9, -.05, .16, 0));
+        [-1, 1].forEach(s => { const st = new T.Mesh(new T.CylinderGeometry(.008, .01, .12, 6), body); st.position.set(.2, .1, s * .03); st.rotation.z = -.4; g.add(st); g.add(sph(.018, P, 1, 1, 1, .23, .16, s * .03)); });
+      }
+      if (k === 'dragonfly') {
+        const bm = mat(0x2fb7c9, { metalness: .3, roughness: .2, clearcoat: 1 });
+        g.add(sph(.05, bm, 1, 1, 1, .2, 0, 0));
+        g.add(sph(.035, bm, 6, 1, 1, -.05, 0, 0));
+        [-1, 1].forEach(s => g.add(sph(.025, P, 1, 1, 1, .23, .02, s * .03)));
+        const wm = new T.MeshPhysicalMaterial({ color: 0xe6f6ff, transparent: true, opacity: .55, roughness: .1, side: T.DoubleSide });
+        g.userData.w = [[.1, 1], [.1, -1], [0, 1], [0, -1]].map(([x, s]) => { const wg = new T.Group(); wg.position.set(x, .02, 0); const w = sph(.07, wm, 1, .08, 3.2, 0, 0, s * .22); w.castShadow = false; wg.add(w); g.add(wg); wg.userData.s = s; return wg; });
+      }
+      g.visible = false; scene.add(g); return g;
+    }
+    const extras = {};
+    ['flowers', 'mushroom', 'reeds', 'lantern', 'ladybird', 'snail', 'dragonfly'].forEach(k => { extras[k] = buildExtra(k); });
+
     let messRaf;
     (function messLoop() {
       messRaf = requestAnimationFrame(messLoop);
+      const lb = extras.ladybird, sn = extras.snail, df = extras.dragonfly, ln = extras.lantern;
+      if (lb.visible) { const a = t * .22 + Math.sin(t * .9) * .1; lb.position.set(Math.cos(a) * 1.5, PAD_Y, Math.sin(a) * 1.5); lb.rotation.y = -a; }
+      if (sn.visible) { const a = 2.2 - t * .05; sn.position.set(Math.cos(a) * 1.82, PAD_Y, Math.sin(a) * 1.82); sn.rotation.y = -a + Math.PI; sn.scale.set(1 + Math.sin(t * 2) * .05, 1, 1); }
+      if (df.visible) {
+        const p = new T.Vector3(Math.sin(t * .45) * 1.9, 2.05 + Math.sin(t * 1.3) * .25, Math.sin(t * .9) * .9 - .2);
+        const v = new T.Vector3(Math.cos(t * .45) * .45 * 1.9, 0, Math.cos(t * .9) * .9 * .9);
+        df.position.copy(p); df.rotation.y = Math.atan2(-v.z, v.x);
+        df.userData.w.forEach((w, i) => { w.rotation.x = w.userData.s * Math.sin(t * 60 + i) * .5; });
+      }
+      if (ln.visible) { const n = .6 + cur.night * .9 + Math.sin(t * 9) * .04; ln.userData.light.intensity = n; ln.userData.glass.emissiveIntensity = .9 + cur.night * .8; }
       const live = messSlots.find(m => m.visible && m.userData.hp > 0);
       messFly.visible = !!live;
       if (live) {
@@ -363,6 +457,7 @@
       }
     }
 
+    function rebuildHat() { if (hatObj) hatWrap.remove(hatObj); hatObj = buildHat(hatKind, keyOf(stage)); hatWrap.add(hatObj); }
     function applyMood() {
       if (sleeping) { tgt.mouth = .25; tgt.eye = .06; tgt.sad = 0; tgt.look = .4; return; }
       tgt.mouth = mood === 'happy' ? 1 : mood === 'sad' ? -.55 : .5;
@@ -387,7 +482,7 @@
         } else {
           prev.wrap.visible = false; next.wrap.visible = true; next.wrap.scale.setScalar(target);
         }
-        attachHat();
+        attachHat(); if (pk !== nk && hatKind === 'sunnies') rebuildHat();
       },
       setMood(m) { mood = m; applyMood(); },
       setSleep(on) {
@@ -430,9 +525,7 @@
       setDirty(v) { tgt.dirty = Math.max(0, Math.min(1, v)); },
       setHat(kind) {
         if (kind === hatKind) return;
-        hatKind = kind;
-        if (hatObj) hatWrap.remove(hatObj);
-        hatObj = buildHat(kind); hatWrap.add(hatObj);
+        hatKind = kind; rebuildHat();
         if (kind !== 'none') tween(.6, p => hatWrap.scale.setScalar(Math.max(.001, elastic(p))));
       },
       react(kind) {
@@ -492,6 +585,9 @@
       },
       celebrate() { api.react('celebrate'); burst(); },
       burstAt(x, y, z, n) { burst(new T.Vector3(x, y, z), n); },
+      setExtras(on) { for (const k in extras) { const v = !!(on && on[k]); if (extras[k].visible !== v) { extras[k].visible = v; if (v) { const g = extras[k], s = g.scale.x || 1; tween(.6, p => g.scale.setScalar(Math.max(.001, s * elastic(p)))); } } } },
+      setDaylight(m) { dayMul = m; },
+      snapshot() { renderer.render(scene, camera); return cv.toDataURL('image/png'); },
       burst,
       hitTest,
       destroy() {

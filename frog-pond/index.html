@@ -13,221 +13,34 @@
 <link rel="apple-touch-icon" href="./icon-512.png">
 <link rel="icon" href="./icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800;900&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0..1,0&display=block">
-<style>
-html,body{margin:0;height:100%;background:#11282F;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
-button{font-family:inherit;-webkit-tap-highlight-color:transparent}
-[hidden]{display:none!important}
-@keyframes fp-heart{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{opacity:1;transform:translate(-50%,-12px) scale(1.15)}100%{transform:translate(-50%,-110px) scale(.9);opacity:0}}
-@keyframes fp-drift{0%{transform:translate(0,0);opacity:.15}50%{opacity:1}100%{transform:translate(34px,-46px);opacity:.25}}
-@keyframes fp-zzz{0%{transform:translate(0,0) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(40px,-90px) scale(1.3);opacity:0}}
-@keyframes fp-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-@keyframes fp-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-@keyframes fp-waves{from{background-position:0 0,0 0}to{background-position:0 120px,0 0}}
-
-html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like "pest_control" if the icon font is missing */
-.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 1}
-
-#app{position:fixed;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;font-family:'Nunito',system-ui,sans-serif}
-
-/* Night Pond main screen */
-.pond{position:absolute;inset:0;display:flex;flex-direction:column;background:radial-gradient(120% 75% at 50% 38%,#1F4C52 0%,#11282F 58%,#0A171C 100%);color:#EAF6EF}
-.fireflies{position:absolute;inset:0;pointer-events:none}
-.fireflies span{position:absolute;width:5px;height:5px;border-radius:50%;background:#E9FFA8;box-shadow:0 0 12px 4px rgba(220,255,140,.5);animation:fp-drift ease-in-out infinite alternate}
-.head{position:relative;padding:calc(20px + env(safe-area-inset-top)) 20px 0;display:flex;flex-direction:column;gap:16px;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
-.head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.name{font-size:30px;font-weight:900;line-height:1;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stage{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:14px;font-weight:800;flex:none}
-.stage .ms{width:22px;height:22px;border-radius:50%;background:#9DF2C4;color:#0F2A2E;display:grid;place-items:center;font-size:15px}
-.grow{display:flex;flex-direction:column;gap:6px}
-.grow-track{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-.grow-fill{height:100%;background:#9DF2C4;border-radius:99px;box-shadow:0 0 12px #9DF2C4;transition:width .6s}
-.grow-label{font-size:13px;color:rgba(234,246,239,.7);font-weight:600}
-.needs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
-.need{display:flex;flex-direction:column;align-items:center;gap:6px}
-.ring{position:relative;width:min(62px,100%);aspect-ratio:1}
-.ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.ring .arc{transition:stroke-dasharray .5s}
-.ring .ms{position:absolute;inset:0;display:grid;place-items:center;font-size:24px}
-.need-label{font-size:13px;font-weight:800;color:rgba(234,246,239,.8)}
-
-.stagebox{position:relative;flex:1;min-height:0}
-.glow{position:absolute;left:50%;top:52%;width:62%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(157,242,196,.32) 0%,rgba(157,242,196,0) 70%);pointer-events:none}
-#scene{position:absolute;inset:0}
-.night{position:absolute;inset:0;pointer-events:none;background:radial-gradient(90% 70% at 50% 50%,rgba(6,12,30,.35) 0%,rgba(6,12,30,.7) 100%)}
-.zzz{position:absolute;left:54%;top:30%;pointer-events:none}
-.zzz span{position:absolute;font-size:30px;font-weight:900;color:#CFE3FF;text-shadow:0 0 12px rgba(160,200,255,.7);animation:fp-zzz 3.6s ease-out infinite}
-.loo{position:absolute;right:14px;top:42%;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;animation:fp-pulse 1.2s ease-in-out infinite}
-.loo .ms{width:58px;height:58px;border-radius:18px;background:#5fd4c4;color:#10262E;display:grid;place-items:center;font-size:34px;box-shadow:0 0 22px -4px #5fd4c4}
-.loo b{font-size:13px;font-weight:800}
-.speech{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);max-width:86%;width:max-content;box-sizing:border-box;padding:10px 18px;border-radius:20px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:18px;font-weight:800;text-align:center;text-wrap:balance;pointer-events:none}
-
-.dockwrap{position:relative;padding:14px 16px calc(22px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
-.dock{display:flex;flex-direction:column;gap:12px;padding:14px 12px 16px;border-radius:30px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
-.dock-hint{text-align:center;font-size:14px;font-weight:800;color:rgba(234,246,239,.75)}
-.tray{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;transition:opacity .2s}
-.tile{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:grab;touch-action:none}
-.tile .ms{width:min(62px,100%);aspect-ratio:1;border-radius:32%;display:grid;place-items:center;color:#10262E;font-size:min(30px,7.5vw)}
-.tile.wants .ms{animation:fp-pulse 1.1s ease-in-out infinite}
-.tile-label{font-size:13px;font-weight:800}
-.sleepbar{display:flex;align-items:center;gap:12px}
-.sleepbar div{flex:1;font-size:15px;font-weight:800;color:rgba(234,246,239,.8);text-wrap:balance}
-.wake{height:54px;padding:0 22px;border-radius:27px;border:0;background:#f4d35e;color:#10262E;font-size:18px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 0 22px -4px #f4d35e,inset 0 -4px 0 rgba(0,0,0,.15)}
-.wake .ms{font-size:24px}
-
-/* Hearts and drag ghost */
-.fx{position:absolute;inset:0;pointer-events:none;z-index:5}
-.fx span{position:absolute;line-height:1;color:#FF5C8A;text-shadow:0 3px 8px rgba(0,0,0,.18)}
-.ghost{position:absolute;width:72px;height:72px;border-radius:24px;display:grid;place-items:center;color:#10262E;font-size:38px;box-shadow:0 12px 30px rgba(0,0,0,.35);pointer-events:none;z-index:30;transition:transform .12s}
-
-/* Bottom sheets */
-.sheetwrap{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center}
-.sheet{width:100%;background:#fff;color:#1F2A22;box-sizing:border-box;display:flex;flex-direction:column}
-.btn-go{border:0;background:#3FA45B;color:#fff;font-weight:800;cursor:pointer;box-shadow:inset 0 -5px 0 rgba(0,0,0,.15)}
-.btn-go:active{transform:scale(.97)}
-
-.egg{padding:0 16px calc(22px + env(safe-area-inset-bottom));z-index:10}
-.egg .sheet{max-width:520px;border-radius:32px;padding:24px 22px 22px;gap:14px;box-shadow:0 18px 50px rgba(0,0,0,.18)}
-.egg h1{margin:0;font-size:30px;font-weight:800;line-height:1.05}
-.egg p{margin:0;font-size:17px;color:#55615A}
-.egg input{height:58px;border-radius:20px;border:2px solid #DCE3DD;padding:0 18px;font:inherit;font-size:22px;font-weight:700;color:#1F2A22;outline:none;background:#F6F8F4;-webkit-user-select:text;user-select:text}
-.egg input:focus{border-color:#3FA45B;background:#fff}
-.ideas{display:flex;flex-wrap:wrap;gap:8px}
-.ideas button{height:40px;padding:0 16px;border-radius:20px;border:0;background:#EEF4EA;color:#2B4A33;font-size:16px;font-weight:700;cursor:pointer}
-.ideas button:hover{background:#E0EDD8}
-.egg .btn-go{height:62px;border-radius:31px;font-size:22px}
-
-.dress,.picker{padding:0 12px calc(14px + env(safe-area-inset-bottom));z-index:12}
-.dress .sheet,.picker .sheet{max-width:560px;border-radius:30px;padding:20px 18px 16px;gap:14px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
-.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.sheet-title{font-size:26px;font-weight:800}
-.done{height:44px;padding:0 20px;border-radius:22px;border:0;background:#1F2A22;color:#fff;font-size:17px;font-weight:800;cursor:pointer;flex:none}
-.hats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.hats button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:20px;border:3px solid transparent;background:#F6F7F2;cursor:pointer;color:#1F2A22}
-.hats button[aria-pressed="true"]{border-color:#1F2A22}
-.hats .dot{width:38px;height:38px;border-radius:50%;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
-.hats .lbl{font-size:14px;font-weight:700;line-height:1.1;text-align:center}
-.reset{align-self:center;background:none;border:0;color:#8A938C;font-size:14px;font-weight:600;cursor:pointer;padding:4px}
-.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.games button{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border-radius:22px;border:3px solid transparent;background:#F6F7F2;cursor:pointer;color:#1F2A22;text-align:left}
-.games button.wanted{border-color:#3FA45B;background:#EEF8EE}
-.games .gi{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;color:#10262E;font-size:28px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
-.games b{font-size:18px;font-weight:800;line-height:1.1}
-.games small{font-size:14px;color:#55615A;font-weight:600;line-height:1.2}
-.games .tag{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:99px;background:#3FA45B;color:#fff;font-size:12px;font-weight:800}
-.picker-note{text-align:center;font-size:14px;color:#8A938C;font-weight:600}
-
-.cele{padding:0 16px calc(22px + env(safe-area-inset-bottom));z-index:15}
-.cele .sheet{max-width:480px;border-radius:32px;padding:24px 22px 20px;gap:10px;align-items:center;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.2)}
-.cele h2{margin:0;font-size:30px;font-weight:800;line-height:1.05;text-wrap:balance}
-.cele p{margin:0;font-size:17px;color:#55615A;text-wrap:pretty}
-.cele .btn-go{margin-top:6px;height:58px;padding:0 44px;border-radius:29px;font-size:22px}
-
-/* Games */
-.game{position:absolute;inset:0;z-index:20;background:linear-gradient(180deg,#CBEBF7 0%,#B6E3CF 100%);color:#1F2A22;display:flex;flex-direction:column;font-family:'Fredoka',system-ui,sans-serif}
-.game-head{display:flex;align-items:center;justify-content:space-between;padding:calc(18px + env(safe-area-inset-top)) 18px 0;gap:10px}
-.game-close{width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.8);font-size:26px;cursor:pointer;color:#1F2A22;font-variation-settings:'FILL' 0;flex:none}
-.game-title{font-size:24px;font-weight:600;text-align:center;min-width:0}
-.game-stats{display:flex;gap:6px;flex:none}
-.chip{height:40px;padding:0 14px;border-radius:20px;background:#fff;display:flex;align-items:center;gap:4px;font-size:18px;font-weight:600;box-sizing:border-box}
-.chip .ms{font-size:20px;color:#E08B1E}
-.chip.dark{background:#1F2A22;color:#fff;font-variant-numeric:tabular-nums}
-.field{position:relative;flex:1;min-height:0;margin:14px 14px calc(14px + env(safe-area-inset-bottom));border-radius:28px;background:rgba(255,255,255,.35);overflow:hidden}
-.field.bonk{animation:fp-shake .3s}
-.layer{position:absolute;inset:0}
-.fly{position:absolute;width:64px;height:64px;transform:translate(-50%,-50%);cursor:pointer;touch-action:none}
-.fly span{position:absolute;border-radius:50%}
-.fly .w1,.fly .w2{top:12px;width:20px;height:16px;background:rgba(255,255,255,.9);border:1px solid rgba(31,42,34,.15)}
-.fly .w1{left:14px;transform:rotate(-25deg)}
-.fly .w2{left:30px;transform:rotate(25deg)}
-.fly .b{left:21px;top:24px;width:22px;height:20px;background:#23232B}
-.card-wrap{position:absolute;inset:0;display:grid;place-items:center;padding:20px;z-index:3}
-.card{background:#fff;border-radius:30px;padding:26px 22px;max-width:340px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;box-shadow:0 14px 40px rgba(31,42,34,.15)}
-.card h2{margin:0;font-size:28px;font-weight:600;line-height:1.1}
-.card p{margin:0;font-size:18px;color:#55615A;text-wrap:pretty}
-.card .btn-go{height:60px;padding:0 36px;border-radius:30px;font-size:22px;font-weight:600}
-.card .big{font-size:64px;font-weight:600;line-height:1;color:#E08B1E}
-.card .sub{font-size:24px;font-weight:600;line-height:1.1;text-wrap:balance}
-.card .stars{font-size:40px;letter-spacing:4px;color:#F5B915;line-height:1}
-.card .extra{font-size:17px;color:#55615A;display:flex;flex-direction:column;gap:2px}
-.card .extra b{color:#1F2A22}
-.card.done-card{gap:12px;max-height:100%;overflow:auto;box-sizing:border-box}
-
-/* Pond Swim */
-.swim{background:repeating-linear-gradient(180deg,rgba(255,255,255,0) 0 50px,rgba(255,255,255,.12) 50px 60px),linear-gradient(180deg,#5cc8e8 0%,#2e8fb8 100%);background-size:100% 120px,100% 100%;background-repeat:repeat,no-repeat;animation:fp-waves 1.4s linear infinite;touch-action:none}
-.swim .lane{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed rgba(255,255,255,.25)}
-.swimmer{position:absolute;bottom:8%;width:64px;height:72px;transform:translateX(-50%);transition:left .15s ease-out}
-.swimmer .bd{position:absolute;left:6px;top:14px;width:52px;height:56px;border-radius:50% 50% 46% 46%;background:#67c24a;box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)}
-.swimmer .e{position:absolute;top:4px;width:22px;height:22px;border-radius:50%;background:#67c24a}
-.swimmer .e::after{content:'';position:absolute;left:5px;top:3px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:inset 3px -3px 0 3px #15151b}
-.swimmer .e1{left:4px}.swimmer .e2{right:4px}
-.swimmer .lg{position:absolute;bottom:0;width:20px;height:14px;border-radius:50%;background:#4c9e36}
-.swimmer .l1{left:-6px;transform:rotate(-30deg)}.swimmer .l2{right:-6px;transform:rotate(30deg)}
-.item{position:absolute;transform:translate(-50%,-50%)}
-.item.flower{width:56px;height:56px;border-radius:50%;background:#4f9f4a;display:grid;place-items:center;color:#FF8FC0;font-size:36px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.15)}
-.item.bubble{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 12%,rgba(255,255,255,.35) 13% 60%,rgba(255,255,255,.65) 100%);border:2px solid rgba(255,255,255,.8)}
-.item.log{width:86px;height:34px;border-radius:17px;background:linear-gradient(180deg,#9b6a3e,#6f4826);box-shadow:inset -12px 0 0 #c48f5a}
-.hearts{position:absolute;left:14px;top:12px;font-size:26px;color:#FF5C8A;letter-spacing:2px;z-index:2;text-shadow:0 2px 6px rgba(0,0,0,.15)}
-.hearts i{font-style:normal;color:rgba(31,42,34,.2)}
-.swim-hint{position:absolute;left:0;right:0;top:52px;text-align:center;font-size:16px;font-weight:600;color:rgba(255,255,255,.9);z-index:1;pointer-events:none}
-
-/* Times tables */
-.tt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;box-sizing:border-box;overflow:auto}
-.tt h2{margin:0;font-size:26px;font-weight:600;text-align:center}
-.tgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:100%;max-width:440px}
-.tgrid button{height:76px;border-radius:20px;border:0;background:#fff;color:#1F2A22;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 0 rgba(31,42,34,.12)}
-.tgrid button:active{transform:translateY(2px);box-shadow:none}
-.tgrid b{font-size:26px;font-weight:600;line-height:1}
-.tgrid small{font-size:14px;color:#F5B915;letter-spacing:1px}
-.tgrid small i{font-style:normal;color:#D8DCD5}
-.tgrid .mix{grid-column:span 4;height:56px;flex-direction:row;gap:10px;background:#a780e6;color:#fff}
-.tgrid .mix b{font-size:22px}
-.tgrid button.wanted{outline:4px solid #3FA45B}
-.clock{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:20px;border:0;background:rgba(255,255,255,.75);color:#1F2A22;font-size:16px;font-weight:600;cursor:pointer;max-width:440px;text-align:left}
-.clock .ms{font-size:28px;color:#8A938C}
-.clock[aria-pressed="true"] .ms{color:#3FA45B}
-.q{font-size:clamp(44px,13vw,72px);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;text-align:center}
-.ans{min-width:150px;height:72px;padding:0 18px;border-radius:22px;background:#fff;border:4px solid #fff;display:grid;place-items:center;font-size:44px;font-weight:600;font-variant-numeric:tabular-nums;box-sizing:border-box}
-.ans.ok{border-color:#3FA45B;background:#E7F6EA}
-.ans.no{border-color:#E86A6A;background:#FDECEC}
-.fb{min-height:28px;font-size:22px;font-weight:600;text-align:center}
-.fb.ok{color:#2F8A47}.fb.no{color:#C24848}
-.progress{font-size:16px;font-weight:600;color:#55615A}
-.tbar{width:100%;max-width:340px;height:8px;border-radius:99px;background:rgba(31,42,34,.1);overflow:hidden}
-.tbar div{height:100%;background:#E08B1E;border-radius:99px}
-.keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;max-width:340px}
-.keys button{height:clamp(52px,8vh,70px);border-radius:20px;border:0;background:#fff;color:#1F2A22;font-size:30px;font-weight:600;cursor:pointer;box-shadow:0 3px 0 rgba(31,42,34,.12);display:grid;place-items:center}
-.keys button:active{transform:translateY(2px);box-shadow:none}
-.keys .go{background:#3FA45B;color:#fff}
-
-/* Memory */
-.mem{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:1fr;gap:10px;padding:16px;box-sizing:border-box;align-content:center}
-.mcard{perspective:600px;cursor:pointer;min-height:0}
-.mcard .in{position:relative;width:100%;height:100%;transition:transform .35s;transform-style:preserve-3d}
-.mcard.up .in{transform:rotateY(180deg)}
-.mcard .f,.mcard .bk{position:absolute;inset:0;border-radius:18px;display:grid;place-items:center;-webkit-backface-visibility:hidden;backface-visibility:hidden}
-.mcard .bk{background:#3FA45B;box-shadow:inset 0 -5px 0 rgba(0,0,0,.15)}
-.mcard .bk::after{content:'';width:46%;aspect-ratio:1;border-radius:50%;background:#7fca78;box-shadow:0 0 0 6px rgba(255,255,255,.15)}
-.mcard .f{background:#fff;transform:rotateY(180deg);font-size:clamp(30px,9vw,48px);box-shadow:0 3px 0 rgba(31,42,34,.12)}
-.mcard.done .f{background:#E7F6EA;outline:4px solid #3FA45B;outline-offset:-4px}
-</style>
+<link rel="stylesheet" href="./app.css">
 <script src="./three.min.js"></script>
 <script src="./frog-engine.js"></script>
+<script src="./sound.js"></script>
+<script src="./learn.js"></script>
 </head>
 <body>
 <div id="app">
-  <div class="pond">
+  <div class="pond" id="pond">
+    <div class="sky-orb" id="orb"></div>
     <div class="fireflies" id="fireflies"></div>
+    <div class="rain" id="rain" hidden></div>
     <div class="night" id="night" hidden></div>
     <header class="head" id="head" hidden>
       <div class="head-row">
         <div class="name" id="name"></div>
-        <div class="stage"><span class="ms">eco</span><span id="stageName"></span></div>
+        <div class="hbtns">
+          <button class="coins" id="coinsBtn" aria-label="Lily coins"><span class="coin ms">eco</span><span id="coins">0</span></button>
+          <button class="ibtn ms" id="bookBtn" aria-label="Sticker book">auto_awesome</button>
+          <button class="ibtn ms" id="photoBtn" aria-label="Take a photo">photo_camera</button>
+          <button class="ibtn ms" id="soundBtn" aria-label="Sound on or off">volume_up</button>
+        </div>
       </div>
       <div class="grow">
         <div class="grow-track"><div class="grow-fill" id="growFill"></div></div>
-        <div class="grow-label" id="growLabel"></div>
+        <div class="grow-label"><span class="ms">eco</span><span id="growLabel"></span></div>
       </div>
       <div class="needs" id="needs"></div>
     </header>
@@ -252,6 +65,8 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
 
   <div class="fx" id="fx"></div>
   <div class="ghost ms" id="ghost" hidden></div>
+  <div id="toastHost"></div>
+  <div class="count" id="count" hidden></div>
 
   <div class="sheetwrap egg" id="eggSheet" hidden>
     <div class="sheet">
@@ -265,25 +80,59 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
     </div>
   </div>
 
-  <div class="sheetwrap dress" id="dressSheet" hidden>
+  <div class="sheetwrap panel" id="shopSheet" hidden>
     <div class="sheet">
       <div class="sheet-head">
-        <div class="sheet-title" id="dressTitle"></div>
+        <div class="sheet-title">Shop</div>
+        <div class="wallet"><span class="coin ms">eco</span><span id="wallet"></span></div>
         <button class="done" data-close>Done</button>
       </div>
-      <div class="hats" id="hats"></div>
-      <button class="reset" id="resetBtn"></button>
+      <div class="tabs" id="tabs" role="tablist">
+        <button data-tab="hats" role="tab">Dress up</button>
+        <button data-tab="pond" role="tab">Pond</button>
+        <button data-tab="friends" role="tab">Friends</button>
+      </div>
+      <div class="items" id="items"></div>
+      <button class="link" data-grownups><span class="ms">lock</span>For grown-ups</button>
     </div>
   </div>
 
-  <div class="sheetwrap picker" id="pickSheet" hidden>
+  <div class="sheetwrap panel" id="bookSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Sticker book</div>
+        <button class="done" data-close>Done</button>
+      </div>
+      <div class="streak"><span class="ms">local_fire_department</span><div><b id="streakText"></b><span id="streakSub"></span></div></div>
+      <div class="stickers" id="stickers"></div>
+      <button class="link" data-grownups><span class="ms">lock</span>For grown-ups</button>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="pickSheet" hidden>
     <div class="sheet">
       <div class="sheet-head">
         <div class="sheet-title" id="pickTitle"></div>
         <button class="done" data-close>Close</button>
       </div>
-      <div class="games" id="games"></div>
-      <div class="picker-note">Games use a little energy. Swimming gets you clean too!</div>
+      <div class="sec">Play</div>
+      <div class="games" id="gamesPlay"></div>
+      <div class="sec">Learn</div>
+      <div class="games" id="gamesLearn"></div>
+      <div class="picker-note">Games use a little energy and earn lily coins.</div>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="photoSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Lovely photo!</div>
+      </div>
+      <img class="photo-img" id="photoImg" alt="Photo of your frog">
+      <div class="row2">
+        <button class="ghostbtn" data-close>Close</button>
+        <button class="btn-go" id="savePhoto">Save photo</button>
+      </div>
     </div>
   </div>
 
@@ -304,17 +153,22 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
         <div class="swim-hint">Tap left or right to swim</div>
         <div class="swimmer" id="swimmer"><span class="lg l1"></span><span class="lg l2"></span><span class="bd"></span><span class="e e1"></span><span class="e e2"></span></div>
       </div>
-      <div class="layer tt" id="ttPick" hidden>
-        <h2>Which times table?</h2>
+      <div class="layer tt" id="qPick" hidden>
+        <h2 id="qPickTitle"></h2>
         <div class="tgrid" id="tgrid"></div>
+        <div class="opts" id="qOpts"></div>
         <button class="clock" id="clockBtn"><span class="ms">timer</span><span><b>Beat the clock</b><br>6 seconds a question, like the Year 4 check</span></button>
       </div>
-      <div class="layer tt" id="ttRun" hidden>
-        <div class="progress" id="ttProg"></div>
-        <div class="tbar" id="ttBarWrap"><div id="ttBar"></div></div>
-        <div class="q" id="ttQ"></div>
-        <div class="ans" id="ttAns"></div>
-        <div class="fb" id="ttFb"></div>
+      <div class="layer tt" id="qRun" hidden>
+        <div class="progress" id="qProg"></div>
+        <div class="tbar" id="qBarWrap"><div id="qBar"></div></div>
+        <div class="q" id="qText"></div>
+        <div id="qClockWrap" hidden><svg class="qclock" id="qClock" viewBox="0 0 200 200"></svg></div>
+        <button class="say" id="qSay" hidden><span class="ms">volume_up</span>Hear the word</button>
+        <div class="qhint" id="qHint" hidden></div>
+        <div class="ans" id="qAns"></div>
+        <div class="choices" id="qChoices"></div>
+        <div class="fb" id="qFb"></div>
         <div class="keys" id="keys"></div>
       </div>
       <div class="layer mem" id="memLayer" hidden></div>
@@ -331,6 +185,7 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
           <div class="stars" id="doneStars" hidden></div>
           <div class="sub" id="doneText"></div>
           <div class="extra" id="doneExtra" hidden></div>
+          <div class="earned" id="doneCoins"></div>
           <button class="btn-go" id="finishBtn">Back to <span class="js-name"></span></button>
         </div>
       </div>
@@ -344,748 +199,20 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
       <button class="btn-go" id="celeBtn">Yay!</button>
     </div>
   </div>
+
+  <div class="gate" id="gate" hidden>
+    <div class="card">
+      <h2>For grown-ups</h2>
+      <p>Press and hold the button for 3 seconds.</p>
+      <button class="hold" id="holdBtn"><i id="holdFill"></i><span>Hold to open</span></button>
+      <button class="link" id="gateCancel">Cancel</button>
+    </div>
+  </div>
+
+  <div class="parent" id="parent" hidden>
+    <div class="parent-in" id="parentBody"></div>
+  </div>
 </div>
-
-<script>
-(function () {
-  'use strict';
-
-  // ---------- Config ----------
-  const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const HR = 1 / 3600;
-  const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
-  const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
-  const POTTY_PER_MEAL = 18;     // ...and quicker after every fly
-  const SLEEP_GAIN = 100 / 600;  // a full recharge takes about 10 minutes of sleep
-  const NEED = [
-    { k: 'food', label: 'Tummy', icon: 'pest_control', color: '#ea942f' },
-    { k: 'clean', label: 'Clean', icon: 'water_drop', color: '#37aae3' },
-    { k: 'fun', label: 'Fun', icon: 'toys', color: '#a780e6' },
-    { k: 'love', label: 'Love', icon: 'favorite', color: '#ef5f89' },
-    { k: 'energy', label: 'Energy', icon: 'bedtime', color: '#f4d35e' }
-  ];
-  const CARE = ['food', 'clean', 'fun', 'love'];
-  const colorOf = k => NEED.find(n => n.k === k).color;
-  const HATS = [['none', 'None', '#E4E6DF'], ['crown', 'Crown', '#F5C542'], ['bow', 'Bow', '#FF7EB6'], ['party', 'Party hat', '#6F8CFF'], ['flower', 'Flower', '#FFC6DC']];
-  const STAGE_NAME = { egg: 'Egg', tadpole: 'Tadpole', froglet: 'Froglet', frog: 'Frog' };
-  const GAMES = {
-    flies: { title: 'Fly Catch', icon: 'pest_control', color: '#ea942f', desc: 'Tap the buzzy flies', want: 'Fancy a game of Fly Catch?' },
-    swim: { title: 'Pond Swim', icon: 'pool', color: '#37aae3', desc: 'Grab flowers, dodge logs', want: 'Can we go for a swim?' },
-    tables: { title: 'Times Tables', icon: 'calculate', color: '#a780e6', desc: 'Practise 1× to 12×', want: '' },
-    memory: { title: 'Lily Memory', icon: 'grid_view', color: '#ef5f89', desc: 'Find the matching pairs', want: "Let's play Memory!" }
-  };
-  const MEM_ICONS = [['pest_control', '#ea942f'], ['water_drop', '#37aae3'], ['favorite', '#ef5f89'], ['local_florist', '#FF7EB6'], ['star', '#F5B915'], ['bedtime', '#6F8CFF']];
-
-  const $ = id => document.getElementById(id);
-  const pick = a => a[Math.floor(Math.random() * a.length)];
-  const rand = (a, b) => a + Math.random() * (b - a);
-  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const clamp = v => Math.max(0, Math.min(100, v));
-  const isNight = () => { const h = new Date().getHours(); return h >= 19 || h < 6; };
-
-  // ---------- State ----------
-  const base = () => ({ name: '', stage: 'egg', needs: { food: 72, clean: 80, fun: 58, love: 66, energy: 85 }, xp: 0, hat: 'none', potty: 20, mess: [0, 0, 0], asleep: false, tables: {}, clock: false, last: Date.now() });
-  let note = null;
-  function load() {
-    const b = base(); let s = null;
-    try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-    s = Object.assign({}, b, s || {}); s.needs = Object.assign({}, b.needs, s.needs || {});
-    if (!Array.isArray(s.mess) || s.mess.length !== 3) s.mess = [0, 0, 0];
-    if (s.stage !== 'egg') {
-      // catch up on the time she was away
-      const secs = Math.max(0, (Date.now() - (s.last || Date.now())) / 1000);
-      const slow = s.asleep ? .5 : 1, messy = s.mess.some(v => v > 0);
-      for (const k of CARE) s.needs[k] = Math.max(8, s.needs[k] - RATES[k] * secs * slow * (k === 'clean' && messy ? 2 : 1));
-      if (s.asleep) {
-        s.needs.energy = Math.min(100, s.needs.energy + SLEEP_GAIN * secs);
-        if (s.needs.energy >= 100) { s.asleep = false; note = 'Good morning! What a lovely sleep.'; }
-      } else {
-        s.needs.energy = Math.max(8, s.needs.energy - RATES.energy * secs);
-        s.potty += POTTY_RATE * secs;
-        if (s.potty >= 100) {
-          const i = s.mess.indexOf(0); if (i >= 0) s.mess[i] = 3;
-          s.potty = 25; note = 'Oops… I had a little accident while you were away. Can you help clean up?';
-        }
-      }
-      if (!note && secs > 3 * 3600) note = 'You came back! I missed you.';
-    }
-    return Object.assign(s, { sheet: null, game: null, toast: null, busy: false, celebrate: null, drag: null, resetArm: false, want: null, away: false });
-  }
-  let S = load();
-  function save() {
-    const { name, stage, needs, xp, hat, potty, mess, asleep, tables, clock } = S;
-    try { localStorage.setItem(KEY, JSON.stringify({ name, stage, needs, xp, hat, potty, mess, asleep, tables, clock, last: Date.now() })); } catch (e) {}
-  }
-  function set(patch) { Object.assign(S, patch); render(); }
-  const hasMess = () => S.mess.some(v => v > 0);
-
-  // ---------- 3D frog ----------
-  let engine = null;
-  function mountEngine() {
-    if (!window.FrogEngine || !window.THREE) { setTimeout(mountEngine, 60); return; }
-    engine = window.FrogEngine.mount($('scene'), {
-      stage: S.stage, onTap: () => pet(), onMess: i => scoop(i),
-      palette: { pad: 0x235a55, padTop: 0x2c6c64 },
-      lights: { sky: 0xa8c6ff, ground: 0x10262e, hemi: .6, key: 0xe6ecff, keyI: .9, rim: 0x8affd2, rimI: 1.4, fillI: .15 },
-      shadow: .35
-    });
-    syncEngine();
-  }
-  function syncEngine() {
-    if (!engine) return;
-    engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(S.hat);
-    engine.setDirty(S.needs.clean < 40 ? (40 - S.needs.clean) / 40 : 0);
-    engine.setMess(S.mess);
-  }
-  function mood() {
-    const v = Object.values(S.needs), min = Math.min(...v), avg = v.reduce((a, b) => a + b, 0) / v.length;
-    const m = min < 25 ? 'sad' : avg >= 68 ? 'happy' : 'ok';
-    return m === 'happy' && (hasMess() || S.potty >= 85) ? 'ok' : m;
-  }
-
-  // ---------- The clock: needs drain, loo fills, wishes appear ----------
-  let lastTick = 0, nextFart = 0, nextYawn = 0, nextWant = Date.now() + 45e3;
-  function decay() {
-    const now = Date.now(), raw = (now - (lastTick || now)) / 1000; lastTick = now;
-    if (S.stage === 'egg' || S.sheet === 'game' || S.celebrate || S.away) return;
-    const dt = Math.min(raw, 43200), needs = Object.assign({}, S.needs);
-    if (S.asleep) {
-      for (const k of CARE) needs[k] = Math.max(5, needs[k] - RATES[k] * dt * .5);
-      needs.energy = Math.min(100, needs.energy + SLEEP_GAIN * dt);
-      set({ needs });
-      if (needs.energy >= 100) wake(true);
-      save(); return;
-    }
-    for (const k of CARE) needs[k] = Math.max(5, needs[k] - RATES[k] * dt * (k === 'clean' && hasMess() ? 2 : 1));
-    needs.energy = Math.max(5, needs.energy - RATES.energy * dt * (isNight() ? 1.6 : 1));
-    const potty = S.potty + POTTY_RATE * dt;
-    set({ needs, potty });
-    if (potty >= 100) accident();
-    else maybeFart(now);
-    maybeYawn(now); maybeWant(now);
-    save();
-  }
-  function quiet() { return S.busy || S.toast || S.sheet || S.celebrate || S.drag || !engine; }
-  function maybeFart(now) {
-    if (S.potty < 65 || quiet()) return;
-    if (!nextFart) nextFart = now + rand(3e3, 8e3);
-    if (now < nextFart) return;
-    const urgent = S.potty >= 85;
-    engine.fart();
-    say(pick(urgent ? ['Pfffft! I REALLY need the loo!', 'Oops, more bubbles! Loo, please!'] : ['Pardon me! Hee hee.', 'Oops! Bubbles!', 'Pfft! Excuse me!', 'Was that me? Hee hee.']), 2800);
-    nextFart = now + (urgent ? rand(9e3, 16e3) : rand(18e3, 34e3));
-  }
-  function maybeYawn(now) {
-    if (S.needs.energy >= 30 || quiet() || now < nextYawn) return;
-    engine.yawn(); nextYawn = now + rand(20e3, 40e3);
-  }
-  function maybeWant(now) {
-    if (S.want || now < nextWant) return;
-    nextWant = now + rand(4, 8) * 60e3;
-    const kind = pick(['swim', 'tables', 'tables', 'memory', 'flies']);
-    if (kind !== 'tables') { set({ want: { kind } }); return; }
-    // ask for the table she has fewest stars on
-    const tabs = []; for (let t = 2; t <= 12; t++) tabs.push(t);
-    const lo = Math.min(...tabs.map(t => S.tables[t] || 0));
-    set({ want: { kind, table: pick(tabs.filter(t => (S.tables[t] || 0) === lo)) } });
-  }
-  const wantText = w => w.kind === 'tables' ? "Let's practise the " + w.table + ' times table!' : GAMES[w.kind].want;
-  function accident() {
-    const mess = S.mess.slice(), i = mess.indexOf(0); if (i >= 0) mess[i] = 3;
-    set({ mess, potty: 20 }); save(); nextFart = 0;
-    engine && engine.react('no');
-    say("Oh no… I couldn't hold it! Can you help clean up?", 4200);
-  }
-
-  // ---------- Care actions ----------
-  let busyT, toastT, petN = 0;
-  function lock(ms) { set({ busy: true }); clearTimeout(busyT); busyT = setTimeout(() => set({ busy: false }), ms); }
-  function say(text, ms = 2600) { set({ toast: text }); clearTimeout(toastT); toastT = setTimeout(() => set({ toast: null }), ms); }
-  function give(gifts, xp) {
-    const needs = Object.assign({}, S.needs);
-    for (const k in gifts) needs[k] = Math.max(k === 'energy' ? 5 : 0, clamp(needs[k] + gifts[k]));
-    S.needs = needs; S.xp += xp || 0;
-    save(); render(); checkGrow();
-  }
-  const canAct = () => !S.busy && S.stage !== 'egg' && !S.celebrate && !S.asleep && !S.away;
-  const nm = () => S.name || 'Pip';
-
-  function feed() {
-    if (!canAct()) return;
-    if (S.needs.food >= 95) { engine && engine.react('no'); say("I'm full! No more flies."); return; }
-    engine && engine.feed(); lock(1700);
-    setTimeout(() => { S.potty += POTTY_PER_MEAL; give({ food: 30 }, 1); say(pick(['Yum! Crunchy fly!', 'Mmm, thank you!', 'Tasty! More please?'])); }, 1300);
-  }
-  function bath() {
-    if (!canAct()) return;
-    if (S.needs.clean >= 95) { engine && engine.react('no'); say("I'm already sparkly clean!"); return; }
-    engine && engine.bath(); lock(2300);
-    setTimeout(() => { give({ clean: 45 }, 1); say('So bubbly! I feel shiny.'); }, 1400);
-  }
-  function pet() {
-    if (S.stage === 'egg') { engine && engine.react('no'); return; }
-    if (S.asleep) { say(pick(['Zzz… shh, sleeping…', 'Mmm… five more minutes…', 'Zzz… ribbit… zzz…']), 2000); return; }
-    if (!canAct()) return;
-    petN++; const tickle = petN % 3 === 0;
-    engine && engine.react(tickle ? 'tickle' : 'pet');
-    addHearts(); give({ love: 12 }, petN % 2 === 0 ? 1 : 0);
-    say(tickle ? 'Hee hee! That tickles!' : pick(['Aww, I love cuddles.', 'More pats please!', 'You are my best friend.']));
-    lock(tickle ? 800 : 650);
-  }
-  function loo() {
-    if (!canAct()) return;
-    if (S.potty < 30) { engine && engine.react('no'); say("I don't need to go right now."); return; }
-    lock(3700); set({ away: true }); say('Be right back!', 1200);
-    engine && engine.hopAway(1.3);
-    setTimeout(() => {
-      S.away = false; S.potty = 0; nextFart = 0;
-      give({ love: 5 }, 1); say(pick(['Phew! Much better. And I washed my hands!', 'All done! Hands washed, too.']), 3000);
-    }, 3300);
-  }
-  function sleep() {
-    if (!canAct()) return;
-    if (S.needs.energy >= 90) { engine && engine.react('no'); say("I'm not sleepy yet!"); return; }
-    set({ asleep: true, sheet: null, want: null }); save(); say('Night night!', 1800);
-  }
-  function wake(auto) {
-    const e = S.needs.energy;
-    set({ asleep: false }); save(); nextWant = Date.now() + 60e3;
-    setTimeout(() => engine && (auto ? engine.react('celebrate') : engine.yawn()), 300);
-    say(auto ? 'Good morning! I feel full of beans!' : e < 60 ? 'Yawn… I was still a bit sleepy.' : 'Morning! That was a good nap.', 3000);
-  }
-  function scoop(i) {
-    if (S.stage === 'egg' || S.away || !(S.mess[i] > 0)) return;
-    const mess = S.mess.slice(); mess[i]--; set({ mess });
-    if (mess[i] > 0) { say(pick(['Scoop!', 'Nearly gone…', 'Keep going!']), 1200); save(); return; }
-    give({ love: 5, clean: 10 }, 1);
-    say(hasMess() ? 'One more to go!' : pick(['Thank you! All clean now.', "Sparkly! You're the best."]));
-  }
-  function play() {
-    if (!canAct()) return;
-    if (S.needs.energy < 15) { engine && engine.yawn(); say("I'm too sleepy to play. Nap time?"); return; }
-    set({ sheet: 'pick' });
-  }
-  function dress() { if (!canAct()) return; set({ sheet: 'dress', resetArm: false }); }
-  function closeSheet() { stopGame(); set({ sheet: null, game: null }); }
-  const ACTIONS = [
-    { kind: 'feed', label: 'Feed', icon: 'pest_control', color: colorOf('food'), run: feed },
-    { kind: 'bath', label: 'Bath', icon: 'bathtub', color: colorOf('clean'), run: bath },
-    { kind: 'play', label: 'Play', icon: 'sports_esports', color: colorOf('fun'), run: play },
-    { kind: 'loo', label: 'Loo', icon: 'wc', color: '#5fd4c4', run: loo },
-    { kind: 'sleep', label: 'Sleep', icon: 'bedtime', color: colorOf('energy'), run: sleep },
-    { kind: 'dress', label: 'Dress', icon: 'checkroom', color: '#76cf8a', run: dress }
-  ];
-
-  function addHearts() {
-    const fx = $('fx');
-    for (let i = 0; i < 3; i++) {
-      const h = document.createElement('span');
-      h.textContent = '♥';
-      h.style.cssText = 'left:' + (40 + Math.random() * 20) + '%;top:' + (34 + Math.random() * 12) + '%;font-size:' + (22 + Math.random() * 16) + 'px;animation:fp-heart 1.3s ' + (i * 130) + 'ms ease-out both';
-      fx.appendChild(h);
-      setTimeout(() => h.remove(), 1700);
-    }
-  }
-
-  function checkGrow() {
-    let next = null;
-    if (S.stage === 'tadpole' && S.xp >= 8) next = 'froglet';
-    else if (S.stage === 'froglet' && S.xp >= 20) next = 'frog';
-    if (!next) return;
-    stopGame();
-    set({ stage: next, celebrate: { kind: 'grow', stage: next }, sheet: null, game: null }); save();
-    setTimeout(() => engine && engine.burst(), 400);
-  }
-  function hatch() {
-    const raw = ($('nameInput').value || '').trim() || 'Pip';
-    const name = (raw.charAt(0).toUpperCase() + raw.slice(1)).slice(0, 14);
-    $('nameInput').blur();
-    set({ name, stage: 'tadpole', celebrate: { kind: 'hatch' } }); save();
-    setTimeout(() => engine && engine.burst(), 350);
-  }
-  function resetTap() {
-    if (!S.resetArm) { set({ resetArm: true }); return; }
-    try { localStorage.removeItem(KEY); } catch (e) {}
-    $('nameInput').value = '';
-    set(Object.assign(base(), { sheet: null, game: null, toast: null, celebrate: null, resetArm: false, want: null, away: false }));
-  }
-
-  // ---------- Games ----------
-  let raf = 0, t0 = 0, tl = 0, sid = 0, ttTimer = 0, memT = 0;
-  function stopGame() { cancelAnimationFrame(raf); clearTimeout(ttTimer); clearTimeout(memT); }
-  function openGame(kind) {
-    stopGame();
-    const g = { kind, phase: 'ready', score: 0 };
-    if (kind === 'flies') Object.assign(g, { left: 20, flies: [] });
-    if (kind === 'swim') Object.assign(g, { left: 30, lane: 1, hearts: 3, items: [], spawn: 0 });
-    if (kind === 'tables') Object.assign(g, { phase: 'pick' });
-    if (kind === 'memory') Object.assign(g, { phase: 'run', moves: 0, open: [], matched: 0, cards: shuffle(MEM_ICONS.concat(MEM_ICONS)).map(([icon, color], i) => ({ i, icon, color, up: false, done: false })) });
-    set({ sheet: 'game', game: g });
-  }
-  function loop(step) {
-    t0 = tl = performance.now();
-    const tick = now => {
-      const g = S.game; if (!g || g.phase !== 'run') return;
-      const dt = Math.min(.05, (now - tl) / 1000); tl = now;
-      step(g, dt, (now - t0) / 1000);
-      renderGame();
-      if (S.game && S.game.phase === 'run') raf = requestAnimationFrame(tick);
-    };
-    cancelAnimationFrame(raf); raf = requestAnimationFrame(tick);
-  }
-  function endGame(extra) { stopGame(); Object.assign(S.game, { phase: 'done' }, extra || {}); render(); }
-  function startGame() {
-    const g = S.game; sid = 0;
-    if (g.kind === 'flies') { g.flies = [0, 1, 2, 3, 4].map(newFly); g.phase = 'run'; loop(flyStep); }
-    if (g.kind === 'swim') { g.phase = 'run'; loop(swimStep); }
-    render();
-  }
-
-  // Fly Catch
-  function newFly() { const a = Math.random() * Math.PI * 2, sp = 18 + Math.random() * 22; return { id: ++sid, x: 10 + Math.random() * 80, y: 12 + Math.random() * 70, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp }; }
-  function flyStep(g, dt, el) {
-    g.left = Math.max(0, 20 - el);
-    if (g.left <= 0) { g.flies = []; endGame(); return; }
-    g.flies.forEach(f => {
-      if (Math.random() < .03) { const a = Math.random() * Math.PI * 2, sp = 18 + Math.random() * 28; f.vx = Math.cos(a) * sp; f.vy = Math.sin(a) * sp; }
-      f.x += f.vx * dt; f.y += f.vy * dt;
-      if (f.x < 7) { f.x = 7; f.vx = Math.abs(f.vx); } if (f.x > 93) { f.x = 93; f.vx = -Math.abs(f.vx); }
-      if (f.y < 8) { f.y = 8; f.vy = Math.abs(f.vy); } if (f.y > 92) { f.y = 92; f.vy = -Math.abs(f.vy); }
-    });
-  }
-  function catchFly(id) {
-    const g = S.game; if (!g || g.kind !== 'flies' || g.phase !== 'run') return;
-    g.score++; g.flies = g.flies.map(f => (f.id === id ? newFly() : f)); renderGame();
-  }
-
-  // Pond Swim: three lanes, things float down towards the frog
-  function swimStep(g, dt, el) {
-    g.left = Math.max(0, 30 - el);
-    if (g.left <= 0) { endGame(); return; }
-    const speed = 30 + el * 1.3; // % of the field per second
-    g.spawn -= dt;
-    if (g.spawn <= 0) {
-      g.spawn = Math.max(.42, .85 - el * .014);
-      const r = Math.random();
-      g.items.push({ id: ++sid, lane: Math.floor(Math.random() * 3), y: -8, type: r < .52 ? 'flower' : r < .7 ? 'bubble' : 'log' });
-    }
-    g.items.forEach(it => {
-      it.y += speed * dt;
-      if (!it.hit && it.lane === g.lane && it.y > 76 && it.y < 92) {
-        it.hit = true;
-        if (it.type === 'log') { g.hearts--; bonk(); } else g.score += it.type === 'bubble' ? 2 : 1;
-      }
-    });
-    g.items = g.items.filter(it => it.y < 112 && !(it.hit && it.type !== 'log'));
-    if (g.hearts <= 0) endGame();
-  }
-  function bonk() { const f = $('field'); f.classList.remove('bonk'); void f.offsetWidth; f.classList.add('bonk'); }
-  function swimTo(dir) { const g = S.game; if (!g || g.kind !== 'swim' || g.phase !== 'run') return; g.lane = Math.max(0, Math.min(2, g.lane + dir)); renderGame(); }
-
-  // Times tables
-  function startTables(table) {
-    const qs = [];
-    if (table === 'mix') {
-      const seen = new Set();
-      while (qs.length < 10) { const a = 2 + Math.floor(Math.random() * 11), b = 2 + Math.floor(Math.random() * 11), k = Math.min(a, b) + 'x' + Math.max(a, b); if (!seen.has(k)) { seen.add(k); qs.push([a, b]); } }
-    } else {
-      shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, 10).forEach(n => qs.push(Math.random() < .5 ? [table, n] : [n, table]));
-    }
-    Object.assign(S.game, { phase: 'run', table, qs, i: 0, input: '', fb: null, wrong: [], score: 0 });
-    askNext(true);
-  }
-  function askNext(first) {
-    const g = S.game; if (!first) { g.i++; g.input = ''; g.fb = null; }
-    if (g.i >= g.qs.length) { finishTables(); return; }
-    g.qStart = performance.now(); render();
-    if (S.clock) {
-      cancelAnimationFrame(raf);
-      const tick = () => {
-        const gg = S.game; if (!gg || gg.kind !== 'tables' || gg.phase !== 'run' || gg.fb) return;
-        if (performance.now() - gg.qStart >= 6000) { submitAnswer(true); return; }
-        renderGame(); raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    }
-  }
-  function keyIn(k) {
-    const g = S.game; if (!g || g.kind !== 'tables' || g.phase !== 'run' || g.fb) return;
-    if (k === 'del') g.input = g.input.slice(0, -1);
-    else if (k === 'go') { submitAnswer(false); return; }
-    else if (g.input.length < 3) g.input = (g.input + k).replace(/^0+(?=\d)/, '');
-    renderGame();
-  }
-  function submitAnswer(timedOut) {
-    const g = S.game; if (g.fb || (!timedOut && g.input === '')) return;
-    cancelAnimationFrame(raf);
-    const [a, b] = g.qs[g.i], right = a * b, ok = g.input !== '' && +g.input === right;
-    if (ok) g.score++; else g.wrong.push(a + ' × ' + b + ' = ' + right);
-    g.fb = { ok, text: ok ? pick(['Ribbit! Correct!', 'Brilliant!', 'Spot on!', 'Hoppy days!']) : (timedOut && g.input === '' ? "Time's up! " : 'Not quite! ') + a + ' × ' + b + ' = ' + right };
-    renderGame();
-    ttTimer = setTimeout(() => askNext(false), ok ? 750 : 2000);
-  }
-  function finishTables() {
-    const g = S.game, stars = g.score === 10 ? 3 : g.score >= 8 ? 2 : g.score >= 5 ? 1 : 0;
-    const tables = Object.assign({}, S.tables); if (stars > (tables[g.table] || 0)) tables[g.table] = stars;
-    S.tables = tables; save();
-    endGame({ stars });
-  }
-
-  // Lily Memory
-  function flip(i) {
-    const g = S.game; if (!g || g.kind !== 'memory' || g.phase !== 'run' || g.open.length >= 2) return;
-    const c = g.cards[i]; if (c.up || c.done) return;
-    c.up = true; g.open.push(i); renderGame();
-    if (g.open.length < 2) return;
-    g.moves++; g.score = g.moves;
-    const [x, y] = g.open.map(j => g.cards[j]);
-    if (x.icon === y.icon) {
-      x.done = y.done = true; g.open = []; g.matched++;
-      renderGame();
-      if (g.matched === MEM_ICONS.length) memT = setTimeout(() => endGame(), 700);
-    } else memT = setTimeout(() => { x.up = y.up = false; g.open = []; renderGame(); }, 900);
-  }
-
-  function finishGame() {
-    const g = S.game; if (!g) return;
-    const kind = g.kind, sc = g.score || 0;
-    let gifts = {}, line = '';
-    if (kind === 'flies') { gifts = { fun: Math.min(70, 20 + sc * 5), energy: -6 }; line = sc >= 8 ? sc + ' flies! You are amazing!' : 'That was fun! Play again soon?'; }
-    if (kind === 'swim') { gifts = { fun: Math.min(60, 20 + sc * 3), clean: 20, energy: -10 }; line = 'Splish splash! I love swimming!'; }
-    if (kind === 'tables') { gifts = { fun: 15 + sc * 3, love: 10, energy: -4 }; line = sc >= 8 ? "You're a times tables star!" : "Great practice! We'll get there."; }
-    if (kind === 'memory') { gifts = { fun: Math.min(70, 25 + Math.max(0, 24 - sc) * 3), energy: -4 }; line = 'What a brilliant memory!'; }
-    const w = S.want, wanted = w && w.kind === kind && (kind !== 'tables' || w.table === g.table);
-    if (wanted) { gifts.love = (gifts.love || 0) + 15; line = "That's just what I wanted! " + line; S.want = null; nextWant = Date.now() + rand(4, 8) * 60e3; }
-    closeSheet(); give(gifts, 2 + (wanted ? 1 : 0) + (kind === 'tables' && sc >= 8 ? 1 : 0));
-    setTimeout(() => engine && engine.react('celebrate'), 150);
-    say(line, 3000);
-  }
-
-  // ---------- Drag items onto the frog ----------
-  let dragInfo = null;
-  function local(e) { const r = $('app').getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-  function startDrag(kind, e) {
-    if (!canAct()) return;
-    e.preventDefault();
-    const p = local(e);
-    dragInfo = { kind, sx: e.clientX, sy: e.clientY, moved: false };
-    set({ drag: { kind, x: p.x, y: p.y, over: false, active: false } });
-    window.addEventListener('pointermove', onDragMove); window.addEventListener('pointerup', onDragUp); window.addEventListener('pointercancel', onDragCancel);
-  }
-  function onDragMove(e) {
-    const d = dragInfo; if (!d) return;
-    if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 8) d.moved = true;
-    const p = local(e), over = !!(engine && engine.hitTest(e.clientX, e.clientY));
-    set({ drag: { kind: d.kind, x: p.x, y: p.y, over, active: d.moved } });
-  }
-  function endDrag() {
-    window.removeEventListener('pointermove', onDragMove); window.removeEventListener('pointerup', onDragUp); window.removeEventListener('pointercancel', onDragCancel);
-    const d = dragInfo; dragInfo = null; set({ drag: null }); return d;
-  }
-  function onDragCancel() { endDrag(); }
-  function onDragUp(e) {
-    const d = endDrag(); if (!d) return;
-    const over = engine && engine.hitTest(e.clientX, e.clientY);
-    if (!d.moved || over) ACTIONS.find(a => a.kind === d.kind).run(); // a plain tap works too
-    else say('Drop it right on ' + nm() + '!', 1800);
-  }
-
-  // ---------- Build static bits ----------
-  (function build() {
-    $('fireflies').innerHTML = Array.from({ length: 12 }, () =>
-      '<span style="left:' + (Math.random() * 92 + 4) + '%;top:' + (Math.random() * 80 + 5) + '%;animation-duration:' + (3 + Math.random() * 4) + 's;animation-delay:' + (-Math.random() * 6) + 's"></span>').join('');
-
-    $('needs').innerHTML = NEED.map(n =>
-      '<div class="need"><div class="ring">' +
-      '<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"></circle>' +
-      '<circle class="arc" data-need="' + n.k + '" cx="28" cy="28" r="22" fill="none" stroke="' + n.color + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 200" style="filter:drop-shadow(0 0 4px ' + n.color + ')"></circle></svg>' +
-      '<span class="ms" style="color:' + n.color + '">' + n.icon + '</span></div>' +
-      '<div class="need-label">' + n.label + '</div></div>').join('');
-
-    ACTIONS.forEach(a => {
-      const t = document.createElement('div');
-      t.className = 'tile'; t.dataset.kind = a.kind; t.setAttribute('role', 'button'); t.setAttribute('aria-label', a.label);
-      t.innerHTML = '<span class="ms" style="background:' + a.color + ';box-shadow:0 0 22px -4px ' + a.color + ',inset 0 -4px 0 rgba(0,0,0,.15)">' + a.icon + '</span><span class="tile-label">' + a.label + '</span>';
-      t.addEventListener('pointerdown', e => startDrag(a.kind, e));
-      $('tray').appendChild(t);
-    });
-
-    ['Pip', 'Lily', 'Mossy', 'Jumpy', 'Bubbles'].forEach(n => {
-      const b = document.createElement('button'); b.textContent = n;
-      b.addEventListener('click', () => { $('nameInput').value = n; });
-      $('ideas').appendChild(b);
-    });
-
-    HATS.forEach(([k, label, dot]) => {
-      const b = document.createElement('button'); b.dataset.hat = k;
-      b.innerHTML = '<span class="dot" style="background:' + dot + '"></span><span class="lbl">' + label + '</span>';
-      b.addEventListener('click', () => { set({ hat: k }); save(); if (k !== 'none') say(pick(['Do I look fancy?', 'I love it!', 'So stylish!'])); });
-      $('hats').appendChild(b);
-    });
-
-    Object.keys(GAMES).forEach(k => {
-      const G = GAMES[k], b = document.createElement('button'); b.dataset.game = k;
-      b.innerHTML = '<span class="gi ms" style="background:' + G.color + '">' + G.icon + '</span><b>' + G.title + '</b><small>' + G.desc + '</small><span class="tag" hidden>Wants this!</span>';
-      b.addEventListener('click', () => openGame(k));
-      $('games').appendChild(b);
-    });
-
-    const tg = $('tgrid');
-    for (let t = 1; t <= 12; t++) { const b = document.createElement('button'); b.dataset.table = t; b.innerHTML = '<b>' + t + '×</b><small></small>'; tg.appendChild(b); }
-    const mix = document.createElement('button'); mix.className = 'mix'; mix.dataset.table = 'mix'; mix.innerHTML = '<b>Mixed up</b><small></small>'; tg.appendChild(mix);
-    tg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) startTables(b.dataset.table === 'mix' ? 'mix' : +b.dataset.table); });
-    $('clockBtn').addEventListener('click', () => { set({ clock: !S.clock }); save(); });
-
-    $('keys').innerHTML = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'go'].map(k =>
-      '<button data-key="' + k + '"' + (k === 'go' ? ' class="go" aria-label="Check">✓' : k === 'del' ? ' aria-label="Delete">⌫' : '>' + k) + '</button>').join('');
-    $('keys').addEventListener('pointerdown', e => { const b = e.target.closest('button'); if (b) { e.preventDefault(); keyIn(b.dataset.key); } });
-
-    $('memLayer').addEventListener('click', e => { const c = e.target.closest('.mcard'); if (c) flip(+c.dataset.i); });
-
-    $('swimLayer').addEventListener('pointerdown', e => {
-      const g = S.game; if (!g || g.phase !== 'run') return;
-      e.preventDefault();
-      const r = $('swimLayer').getBoundingClientRect(), fx = r.left + r.width * (g.lane + .5) / 3;
-      swimTo(e.clientX < fx ? -1 : 1);
-    });
-    document.addEventListener('keydown', e => {
-      const g = S.game; if (!g || S.sheet !== 'game') return;
-      if (g.kind === 'swim') { if (e.key === 'ArrowLeft') swimTo(-1); if (e.key === 'ArrowRight') swimTo(1); }
-      if (g.kind === 'tables') {
-        if (/^[0-9]$/.test(e.key)) keyIn(e.key);
-        else if (e.key === 'Backspace') keyIn('del');
-        else if (e.key === 'Enter') keyIn('go');
-      }
-    });
-
-    $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') hatch(); });
-    $('hatchBtn').addEventListener('click', hatch);
-    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheet));
-    $('gameClose').addEventListener('click', closeSheet);
-    $('resetBtn').addEventListener('click', resetTap);
-    $('startBtn').addEventListener('click', startGame);
-    $('finishBtn').addEventListener('click', finishGame);
-    $('wakeBtn').addEventListener('click', () => wake(false));
-    $('celeBtn').addEventListener('click', () => set({ celebrate: null }));
-    $('flyLayer').addEventListener('pointerdown', e => {
-      const f = e.target.closest('.fly'); if (f) { e.preventDefault(); catchFly(+f.dataset.id); }
-    });
-  })();
-
-  // ---------- Render ----------
-  const show = (id, on) => { const el = $(id); if (el.hidden === on) el.hidden = !on; };
-  const text = (el, t) => { if (el.textContent !== t) el.textContent = t; };
-  const starStr = n => '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
-
-  // keeps a set of absolutely-positioned sprites in step with a list, by id
-  function sprites(layer, map, list, make, place) {
-    const live = new Set();
-    list.forEach(o => {
-      live.add(o.id);
-      let el = map.get(o.id);
-      if (!el) { el = make(o); el.dataset.id = o.id; layer.appendChild(el); map.set(o.id, el); }
-      place(el, o);
-    });
-    map.forEach((el, id) => { if (!live.has(id)) { el.remove(); map.delete(id); } });
-  }
-  const flyEls = new Map(), itemEls = new Map();
-
-  function speechLine(m, low) {
-    if (S.toast) return S.toast;
-    if (S.asleep) return 'Zzz…';
-    if (S.away) return '';
-    if (hasMess()) return 'Eww! Tap the mess to scoop it up.';
-    if (S.potty >= 85) return 'I really, really need the loo!';
-    const sadLines = { food: 'My tummy is rumbly…', clean: "I'm all muddy!", fun: "I'm sooo bored.", love: 'I miss you. Cuddle?', energy: "I'm so sleepy… bedtime?" };
-    const okLines = { food: 'Got any flies?', clean: 'Bath time, maybe?', fun: 'Wanna play?', love: 'Pat my head!', energy: "Yawn… I'm getting sleepy." };
-    if (m === 'sad') return sadLines[low.k];
-    if (S.needs.energy < 30) return okLines.energy;
-    if (S.potty >= 65) return 'I think I need the loo soon…';
-    if (S.want) return wantText(S.want);
-    if (isNight() && S.needs.energy < 70) return "It's nearly bedtime!";
-    return m === 'happy' ? 'Ribbit! I love you, friend!' : okLines[low.k];
-  }
-
-  function render() {
-    const hatched = S.stage !== 'egg', name = nm();
-    const needs = NEED.map(n => ({ k: n.k, v: Math.round(S.needs[n.k]) }));
-    const low = needs.slice().sort((a, b) => a.v - b.v)[0], m = mood();
-
-    show('head', hatched); show('dock', hatched); show('speech', hatched); show('eggSheet', !hatched);
-    show('night', hatched && S.asleep); show('zzz', hatched && S.asleep); show('looSign', !!S.away);
-    if (hatched) {
-      text($('name'), name);
-      text($('stageName'), STAGE_NAME[S.stage]);
-      let gp = 1, gLabel = 'All grown up!';
-      if (S.stage === 'tadpole') { gp = S.xp / 8; gLabel = Math.max(1, Math.ceil(8 - S.xp)) + ' more care to grow legs'; }
-      if (S.stage === 'froglet') { gp = (S.xp - 8) / 12; gLabel = Math.max(1, Math.ceil(20 - S.xp)) + ' more care to be a frog'; }
-      $('growFill').style.width = Math.round(Math.min(1, Math.max(0, gp)) * 100) + '%';
-      text($('growLabel'), gLabel);
-      needs.forEach(n => $('needs').querySelector('[data-need="' + n.k + '"]').setAttribute('stroke-dasharray', (n.v / 100 * 138.2).toFixed(1) + ' 200'));
-
-      const sp = speechLine(m, low);
-      show('speech', !!sp); text($('speech'), sp);
-      show('tray', !S.asleep); show('dockHint', !S.asleep); show('sleepBar', S.asleep);
-      text($('dockHint'), 'Drag a thing onto ' + name + ', or tap ' + name + ' to cuddle');
-      text($('sleepText'), 'Shh… ' + name + ' is asleep. Energy fills up while ' + name + ' sleeps.');
-      $('tray').style.opacity = S.busy || S.away ? .55 : 1;
-      $('tray').querySelectorAll('.tile').forEach(t => {
-        const k = t.dataset.kind;
-        t.classList.toggle('wants', (k === 'play' && !!S.want) || (k === 'loo' && S.potty >= 65) || (k === 'sleep' && S.needs.energy < 30));
-      });
-    }
-
-    // drag ghost + drop glow
-    const dr = S.drag, active = !!(dr && dr.active);
-    show('ghost', active); show('glow', active && dr.over);
-    if (active) {
-      const a = ACTIONS.find(x => x.kind === dr.kind), gh = $('ghost');
-      text(gh, a.icon); gh.style.background = a.color;
-      gh.style.left = dr.x + 'px'; gh.style.top = dr.y + 'px';
-      gh.style.transform = 'translate(-50%,-60%) scale(' + (dr.over ? 1.2 : 1) + ')';
-    }
-
-    // dress-up sheet
-    show('dressSheet', S.sheet === 'dress');
-    if (S.sheet === 'dress') {
-      text($('dressTitle'), 'Dress up ' + name);
-      $('hats').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hat === S.hat)));
-      text($('resetBtn'), S.resetArm ? 'Tap again to start over with a new egg' : 'Start over');
-    }
-
-    // game picker
-    show('pickSheet', S.sheet === 'pick');
-    if (S.sheet === 'pick') {
-      text($('pickTitle'), 'Play with ' + name);
-      $('games').querySelectorAll('button').forEach(b => {
-        const on = !!(S.want && S.want.kind === b.dataset.game);
-        b.classList.toggle('wanted', on); b.querySelector('.tag').hidden = !on;
-      });
-    }
-
-    renderGame();
-
-    // celebration
-    const cel = S.celebrate;
-    show('celeSheet', !!cel);
-    if (cel) {
-      text($('celeTitle'), cel.kind === 'hatch' ? 'Say hi to ' + name + '!' : cel.stage === 'froglet' ? name + ' is a froglet now!' : name + ' is a real frog!');
-      text($('celeBody'), cel.kind === 'hatch' ? 'Your egg hatched into a tiny tadpole. Feed, bathe and cuddle it to help it grow.'
-        : cel.stage === 'froglet' ? 'Look, little legs! Keep caring and ' + name + ' will grow into a frog.' : 'All grown up. Try on a hat in Dress up!');
-    }
-
-    syncEngine();
-  }
-
-  function renderGame() {
-    const g = S.game, on = S.sheet === 'game' && !!g;
-    show('game', on);
-    if (!on) { sprites($('flyLayer'), flyEls, [], null, null); sprites($('swimLayer'), itemEls, [], null, null); return; }
-    const G = GAMES[g.kind], name = nm();
-    document.querySelectorAll('.js-name').forEach(el => text(el, name));
-    text($('gameTitle'), G.title);
-
-    // header chips
-    const icons = { flies: 'pest_control', swim: 'local_florist', tables: 'check_circle', memory: 'touch_app' };
-    text($('scoreIcon'), icons[g.kind]); text($('gameScore'), String(g.score || 0));
-    show('scoreChip', !(g.kind === 'tables' && g.phase === 'pick'));
-    let tl = null;
-    if (g.kind === 'flies' || g.kind === 'swim') tl = Math.ceil(g.left) + 's';
-    if (g.kind === 'tables' && g.phase === 'run') tl = Math.min(g.i + 1, 10) + '/10';
-    show('timeChip', tl !== null); if (tl) text($('gameLeft'), tl);
-
-    // layers
-    show('flyLayer', g.kind === 'flies');
-    show('swimLayer', g.kind === 'swim');
-    show('ttPick', g.kind === 'tables' && g.phase === 'pick');
-    show('ttRun', g.kind === 'tables' && g.phase === 'run');
-    show('memLayer', g.kind === 'memory' && g.phase !== 'done');
-    $('field').style.background = g.kind === 'swim' ? 'transparent' : '';
-
-    sprites($('flyLayer'), flyEls, g.kind === 'flies' ? g.flies : [],
-      () => { const el = document.createElement('div'); el.className = 'fly'; el.innerHTML = '<span class="w1"></span><span class="w2"></span><span class="b"></span>'; return el; },
-      (el, f) => { el.style.left = f.x + '%'; el.style.top = f.y + '%'; });
-
-    if (g.kind === 'swim') {
-      $('swimmer').style.left = ((g.lane + .5) / 3 * 100) + '%';
-      $('hearts').innerHTML = '♥'.repeat(Math.max(0, g.hearts)) + '<i>' + '♥'.repeat(3 - Math.max(0, g.hearts)) + '</i>';
-    }
-    sprites($('swimLayer'), itemEls, g.kind === 'swim' ? g.items : [],
-      it => { const el = document.createElement('div'); el.className = 'item ' + it.type; if (it.type === 'flower') { el.classList.add('ms'); el.textContent = 'local_florist'; } return el; },
-      (el, it) => { el.style.left = ((it.lane + .5) / 3 * 100) + '%'; el.style.top = it.y + '%'; });
-
-    if (g.kind === 'tables') {
-      if (g.phase === 'pick') {
-        const w = S.want && S.want.kind === 'tables' ? S.want.table : null;
-        $('tgrid').querySelectorAll('button').forEach(b => {
-          const k = b.dataset.table; b.querySelector('small').innerHTML = starStr(S.tables[k] || 0);
-          b.classList.toggle('wanted', String(w) === k);
-        });
-        $('clockBtn').setAttribute('aria-pressed', String(!!S.clock));
-        text($('clockBtn').querySelector('.ms'), S.clock ? 'timer' : 'timer_off');
-      }
-      if (g.phase === 'run' && g.i < g.qs.length) {
-        const [a, b] = g.qs[g.i];
-        text($('ttProg'), (g.table === 'mix' ? 'Mixed up' : g.table + ' times table') + ' · question ' + (g.i + 1) + ' of 10');
-        text($('ttQ'), a + ' × ' + b);
-        text($('ttAns'), g.input || (g.fb ? '–' : '?'));
-        $('ttAns').className = 'ans' + (g.fb ? (g.fb.ok ? ' ok' : ' no') : '');
-        text($('ttFb'), g.fb ? g.fb.text : '');
-        $('ttFb').className = 'fb' + (g.fb ? (g.fb.ok ? ' ok' : ' no') : '');
-        show('ttBarWrap', !!S.clock);
-        if (S.clock) $('ttBar').style.width = (g.fb ? 0 : Math.max(0, 100 - (performance.now() - g.qStart) / 60)) + '%';
-      }
-    }
-
-    if (g.kind === 'memory') {
-      const ml = $('memLayer');
-      if (ml.children.length !== g.cards.length || ml.dataset.deck !== g.cards.map(c => c.icon).join()) {
-        ml.dataset.deck = g.cards.map(c => c.icon).join();
-        ml.innerHTML = g.cards.map(c => '<div class="mcard" data-i="' + c.i + '"><div class="in"><div class="bk"></div><div class="f ms" style="color:' + c.color + '">' + c.icon + '</div></div></div>').join('');
-      }
-      g.cards.forEach((c, i) => { const el = ml.children[i]; el.classList.toggle('up', c.up || c.done); el.classList.toggle('done', c.done); });
-    }
-
-    // ready + done cards
-    const ready = g.phase === 'ready';
-    show('gameReady', ready);
-    if (ready) {
-      text($('readyTitle'), g.kind === 'swim' ? "Let's go swimming!" : 'Catch the flies!');
-      text($('readyText'), g.kind === 'swim' ? 'Tap left or right to swim. Grab flowers and bubbles, and dodge the logs!' : 'Tap as many flies as you can before time runs out. ' + name + ' is hungry for fun.');
-    }
-    show('gameDone', g.phase === 'done');
-    if (g.phase === 'done') {
-      const sc = g.score || 0;
-      let big = String(sc), sub = '', extra = '';
-      if (g.kind === 'flies') sub = sc >= 8 ? 'Super catcher!' : sc >= 1 ? 'Flies caught!' : 'Those flies were fast!';
-      if (g.kind === 'swim') sub = g.hearts <= 0 ? 'Bonk! Too many logs. Flowers grabbed:' : sc >= 25 ? 'Super swimmer!' : 'Flowers and bubbles grabbed!';
-      if (g.kind === 'memory') { sub = (sc <= 9 ? 'Amazing memory!' : sc <= 14 ? 'Well done!' : 'You found them all!') + ' That took ' + sc + ' goes.'; big = '6/6'; }
-      if (g.kind === 'tables') {
-        big = sc + '/10';
-        sub = sc === 10 ? 'Perfect score!' : sc >= 8 ? 'Brilliant work!' : sc >= 5 ? 'Good going!' : 'Keep practising!';
-        if (g.wrong.length) extra = "Let's remember these:<br>" + g.wrong.map(x => '<b>' + x + '</b>').join('');
-      }
-      text($('doneBig'), big); text($('doneText'), sub);
-      show('doneStars', g.kind === 'tables'); if (g.kind === 'tables') $('doneStars').innerHTML = starStr(g.stars || 0);
-      show('doneExtra', !!extra); if ($('doneExtra').innerHTML !== extra) $('doneExtra').innerHTML = extra;
-    }
-  }
-
-  // ---------- Go ----------
-  const iconsOk = () => document.documentElement.classList.add('icons-ok');
-  if (document.fonts && document.fonts.load) document.fonts.load("24px 'Material Symbols Rounded'", 'eco').then(f => { if (f.length) iconsOk(); }, () => {});
-  else iconsOk();
-  render();
-  mountEngine();
-  if (note) setTimeout(() => say(note, 4500), 600);
-  setInterval(decay, 1000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') decay(); else save(); });
-
-  try {
-    if ('serviceWorker' in navigator && window.top === window && /^https?:/.test(location.protocol))
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
-  } catch (e) {}
-})();
-</script>
+<script src="./app.js"></script>
 </body>
 </html>
