@@ -465,3 +465,15 @@ small.stars3 i{font-style:normal;color:#D8DCD5}
 .shooting{position:absolute;top:8%;left:-20%;width:120px;height:2px;background:linear-gradient(90deg,transparent,#fff);transform:rotate(14deg);animation:fp-shoot 7s linear infinite}
 @keyframes fp-shoot{0%,80%{left:-20%;opacity:0}82%{opacity:1}100%{left:110%;opacity:0}}
 .scene-arctic .speech,.scene-arctic .jobs,.scene-arctic .wx,.scene-arctic .dock,.scene-candy .speech,.scene-candy .jobs,.scene-candy .wx,.scene-candy .dock,.scene-desert .speech{background:rgba(28,40,66,.45);border-color:rgba(255,255,255,.25)}
+
+/* Coin bonus badges */
+.bonus{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font:800 12px/1.3 'Nunito',system-ui,sans-serif;letter-spacing:.02em;vertical-align:middle;white-space:nowrap;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.bonus.x3{background:linear-gradient(180deg,#FFE27A,#F5B915);color:#5a3a00}
+.bonus.x2{background:linear-gradient(180deg,#F1F4F7,#C3CCD5);color:#3b4652}
+.tgrid button{position:relative}
+.tgrid .bslot{position:absolute;top:-7px;right:-5px}
+.tgrid .bslot .bonus{font-size:11px;padding:1px 6px}
+.games .ctag{margin-left:auto;flex:none}
+.games .gt{flex:1}
+.card .earned .bonus{margin-left:4px}
+.tgrid-p .pc{display:block;font-size:11px;color:#8A938C;font-weight:700}

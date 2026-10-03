@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-03.8'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-03.9'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -387,6 +387,32 @@
     }, note ? 5200 : 1500);
   }
 
+  // ---------- Learning rewards: least-practised pays the most ----------
+  // Over the last three weeks, the times tables (and the other learning options) she has played
+  // least earn triple coins, the next least double. Times tables also earn half as much again.
+  const PRACTICE_DAYS = 21;
+  const TABLE_OPTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 'mix'].map(t => 'tables:' + t);
+  const OTHER_OPTS = () => Object.keys(QUIZ).filter(k => k !== 'tables').flatMap(k => QUIZ[k].opts.filter(([key]) => key !== 'tricky').map(([key]) => k + ':' + key));
+  function practiceCounts() {
+    const since = Date.now() - PRACTICE_DAYS * 864e5, c = {};
+    S.history.forEach(h => { if (h.t >= since) { const k = h.kind + ':' + h.key; c[k] = (c[k] || 0) + 1; } });
+    return c;
+  }
+  function bonusFor(kind, key, counts) {
+    if (!QUIZ[kind] || key === 'tricky') return 1;
+    const c = counts || practiceCounts(), group = kind === 'tables' ? TABLE_OPTS : OTHER_OPTS();
+    const min = Math.min(...group.map(o => c[o] || 0)), n = c[kind + ':' + key] || 0;
+    return n <= min ? 3 : n <= min + 1 ? 2 : 1;
+  }
+  const bestBonus = kind => { const c = practiceCounts(); return kind === 'tables' ? Math.max(...TABLE_OPTS.map(o => bonusFor('tables', o.slice(7), c))) : Math.max(...(QUIZ[kind].opts || []).map(([k]) => bonusFor(kind, k, c))); };
+  // the times table she has practised least (ties go to the one with fewest stars)
+  function neediestTable() {
+    const c = practiceCounts(), t = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const score = n => (c['tables:' + n] || 0) * 10 + (S.stars['tables:' + n] || 0);
+    const lo = Math.min(...t.map(score)); return pick(t.filter(n => score(n) === lo));
+  }
+  const bonusBadge = m => (m > 1 ? '<span class="bonus x' + m + '">×' + m + '</span>' : '');
+
   // ---------- Today's jobs: three a day, at least two of them learning ----------
   const JOBS = {
     feed: { label: 'Feed {name} 2 flies', icon: 'pest_control', goal: 2, go: 'feed' },
@@ -396,13 +422,13 @@
     popq: { label: "Answer 3 of {name}'s quick questions", icon: 'help', goal: 3 },
     score8: { label: 'Score 8 or more in a learning game', icon: 'military_tech', goal: 1, go: 'pick' }
   };
-  const jobInfo = id => id.startsWith('quiz:') ? { label: 'Play ' + QUIZ[id.slice(5)].title, icon: QUIZ[id.slice(5)].icon, color: QUIZ[id.slice(5)].color, goal: 1, go: id.slice(5) } : JOBS[id];
+  const jobInfo = id => id.startsWith('tab:') ? { label: 'Practise the ' + id.slice(4) + ' times table', icon: 'calculate', color: '#a780e6', goal: 1, go: 'tables', key: id.slice(4), coins: 20 } : id.startsWith('quiz:') ? { label: 'Play ' + QUIZ[id.slice(5)].title, icon: QUIZ[id.slice(5)].icon, color: QUIZ[id.slice(5)].color, goal: 1, go: id.slice(5) } : JOBS[id];
   const fillName = t => t.replace('{name}', nm());
   function makeJobs(day) {
     let h = 17; for (const c of day) h = (h * 31 + c.charCodeAt(0)) | 0;
     const r = () => { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; }, pk = a => a[Math.floor(r() * a.length)];
-    const learn = Object.keys(QUIZ), a = pk(learn); let b = pk(learn); while (b === a) b = pk(learn);
-    return { day, bonus: false, list: ['quiz:' + a, 'quiz:' + b, pk(Object.keys(JOBS))].map(id => ({ id, n: 0, done: false })) };
+    const learn = Object.keys(QUIZ).filter(k => k !== 'tables'), a = pk(learn);
+    return { day, bonus: false, list: ['tab:' + neediestTable(), 'quiz:' + a, pk(Object.keys(JOBS))].map(id => ({ id, n: 0, done: false })) };
   }
   function ensureJobs() {
     if (S.stage === 'egg') return;
@@ -413,7 +439,7 @@
     S.jobs.list.forEach(j => {
       if (j.id !== id || j.done) return;
       const info = jobInfo(j.id); j.n++;
-      if (j.n >= info.goal) { j.done = true; earn(10); queueToast('Job done!', fillName(info.label), 'task_alt', '#3FA45B'); }
+      if (j.n >= info.goal) { j.done = true; earn(info.coins || 10); queueToast('Job done!', fillName(info.label), 'task_alt', '#3FA45B'); }
     });
     if (!S.jobs.bonus && S.jobs.list.every(j => j.done)) {
       S.jobs.bonus = true; count('jobDays');
@@ -421,13 +447,14 @@
     }
     save(); render(); checkStickers();
   }
-  const openLearnJob = () => S.jobs && S.jobs.list.find(j => !j.done && j.id.startsWith('quiz:'));
+  const openLearnJob = () => S.jobs && S.jobs.list.find(j => !j.done && (j.id.startsWith('quiz:') || j.id.startsWith('tab:')));
   function goJob(id) {
     const info = jobInfo(id);
     if (!info.go) { closeSheet(); say(id === 'cuddle' ? 'Tap me for a cuddle!' : "I'll ask you a question soon!", 2600); if (id === 'popq') nextPop = Date.now() + 3e3; return; }
     if (info.go === 'feed' || info.go === 'bath') { closeSheet(); setTimeout(() => (info.go === 'feed' ? feed : bath)(), 200); return; }
     if (info.go === 'pick') { set({ sheet: 'pick' }); return; }
     openGame(info.go);
+    if (info.key) startQuiz(info.key);
   }
 
   // ---------- Pop quizzes: the frog asks a quick question ----------
@@ -476,7 +503,9 @@
   function nudgeLine() {
     const lines = [], open = openLearnJob();
     if (S.want) lines.push('Hey! ' + wantText(S.want));
-    if (open) lines.push("Don't forget today's job: " + QUIZ[open.id.slice(5)].title + '!');
+    if (open) lines.push("Don't forget today's job: " + fillName(jobInfo(open.id).label) + '!');
+    const nt = neediestTable(), nb = bonusFor('tables', String(nt));
+    if (nb > 1) lines.push('Psst! The ' + nt + ' times table has ' + (nb === 3 ? 'triple' : 'double') + ' coins right now!', 'Times tables win the most lily coins! Shall we do the ' + nt + ' times table?');
     lines.push('Psst! Shall we do some maths together? I love numbers!', "I'm bored! Can we play Spelling Bubbles?", "Ribbit! Are you still there? Let's learn something new!",
       'Can we do some times tables? I want to be clever like you!', "Let's earn some lily coins with a learning game!");
     return pick(lines);
@@ -525,12 +554,10 @@
     if (S.want || now < nextWant) return;
     nextWant = now + rand(2, 4) * 60e3;
     // mostly learning wishes, with the odd fun game
-    const kind = Math.random() < .75 ? pick(Object.keys(QUIZ).concat(['tables', 'tables'])) : pick(Object.keys(PLAY));
+    const kind = Math.random() < .8 ? pick(Object.keys(QUIZ).concat(['tables', 'tables', 'tables'])) : pick(Object.keys(PLAY));
     if (kind !== 'tables') { set({ want: { kind } }); return; }
     // ask for the table she has fewest stars on
-    const tabs = []; for (let t = 2; t <= 12; t++) tabs.push(t);
-    const lo = Math.min(...tabs.map(t => S.stars['tables:' + t] || 0));
-    set({ want: { kind, table: pick(tabs.filter(t => (S.stars['tables:' + t] || 0) === lo)) } });
+    set({ want: { kind, table: neediestTable() } });
   }
   const wantText = w => w.kind === 'tables' ? "Let's practise the " + w.table + ' times table!' : GAMES[w.kind].want;
   function accident() {
@@ -801,10 +828,12 @@
   }
   function gameCoins(g) {
     const sc = g.score || 0;
-    if (g.kind === 'flies') return Math.min(10, Math.ceil(sc / 2));
-    if (g.kind === 'swim') return Math.min(12, Math.floor(sc / 3));
-    if (g.kind === 'memory') return Math.max(3, 14 - Math.floor(g.moves / 2));
-    return sc + (g.stars || 0) * 3;
+    // fun games pay a little; learning pays a lot
+    if (g.kind === 'flies') return Math.min(6, Math.ceil(sc / 3));
+    if (g.kind === 'swim') return Math.min(6, Math.floor(sc / 4));
+    if (g.kind === 'memory') return Math.max(2, 8 - Math.floor(g.moves / 3));
+    const base = sc * 2 + [0, 2, 5, 10][g.stars || 0];
+    return Math.round(base * (g.kind === 'tables' ? 1.5 : 1) * (g.bonus || 1));
   }
   function startGame() {
     const g = S.game; sid = 0;
@@ -859,7 +888,7 @@
   function startQuiz(key) {
     const g = S.game, k = g.kind;
     const qs = k === 'tables' ? Learn.tables(key === 'mix' ? 'mix' : +key) : k === 'spell' ? Learn.spell(key, trickyWords()) : Learn[k](key);
-    Object.assign(g, { phase: 'run', key: String(key), qs, i: 0, input: '', fb: null, chosen: -1, wrong: [], score: 0 });
+    Object.assign(g, { phase: 'run', key: String(key), qs, i: 0, input: '', fb: null, chosen: -1, wrong: [], score: 0, bonus: bonusFor(k, String(key)) });
     askNext(true);
   }
   function askNext(first) {
@@ -903,9 +932,9 @@
   function finishQuiz() {
     const g = S.game, stars = g.score === 10 ? 3 : g.score >= 8 ? 2 : g.score >= 5 ? 1 : 0, sk = g.kind + ':' + g.key;
     S.stars = Object.assign({}, S.stars, { [sk]: Math.max(S.stars[sk] || 0, stars) });
-    S.history = S.history.concat([{ t: Date.now(), kind: g.kind, key: g.key, score: g.score }]).slice(-60);
+    S.history = S.history.concat([{ t: Date.now(), kind: g.kind, key: g.key, score: g.score }]).slice(-400);
     save(); endGame({ stars });
-    job('quiz:' + g.kind); if (g.score >= 8) job('score8');
+    job('quiz:' + g.kind); if (g.kind === 'tables') job('tab:' + g.key); if (g.score >= 8) job('score8');
   }
   function quizLabel(kind, key) {
     if (kind === 'tables') return key === 'mix' ? 'Mixed times tables' : key + ' times table';
@@ -1000,7 +1029,8 @@
       '<div class="kpi"><b>' + S.history.length + '</b><span>learning games</span></div>' +
       '<div class="kpi"><b>' + (S.stats.coinsEarned || 0) + '</b><span>lily coins earned</span></div></div></div>';
     h += '<div class="pbox"><h3>Times tables</h3><div class="tgrid-p">';
-    for (let t = 1; t <= 12; t++) h += '<div><b>' + t + '×</b><small class="stars3">' + starStr(st['tables:' + t] || 0) + '</small></div>';
+    const pc = practiceCounts();
+    for (let t = 1; t <= 12; t++) h += '<div><b>' + t + '×</b><small class="stars3">' + starStr(st['tables:' + t] || 0) + '</small><small class="pc">' + (pc['tables:' + t] || 0) + ' in 3 wks</small></div>';
     h += '</div><p>Mixed up: <small class="stars3">' + starStr(st['tables:mix'] || 0) + '</small></p>';
     h += tt.length ? '<h3>Tricky facts</h3><ul class="plist">' + tt.map(k => row(esc(k.slice(k.indexOf(':') + 1)), 'missed ' + S.tricky[k] + '×')).join('') + '</ul>' : '<p>No tricky facts yet. Facts she gets wrong will show here until she gets them right again.</p>';
     h += '</div>';
@@ -1190,15 +1220,15 @@
 
     const gameBtn = (k, G) => {
       const b = document.createElement('button'); b.dataset.game = k;
-      b.innerHTML = '<span class="gi ms" style="background:' + G.color + '">' + G.icon + '</span><span class="gt"><b>' + G.title + '</b><small>' + G.desc + '</small></span><span class="tag" hidden>Wish!</span>';
+      b.innerHTML = '<span class="gi ms" style="background:' + G.color + '">' + G.icon + '</span><span class="gt"><b>' + G.title + '</b><small>' + G.desc + '</small></span><span class="tag" hidden>Wish!</span><span class="ctag" hidden></span>';
       b.addEventListener('click', () => openGame(k)); return b;
     };
     Object.keys(PLAY).forEach(k => $('gamesPlay').appendChild(gameBtn(k, PLAY[k])));
     Object.keys(QUIZ).forEach(k => $(QUIZ[k].group === 'maths' ? 'gamesMaths' : 'gamesWords').appendChild(gameBtn(k, QUIZ[k])));
 
     const tg = $('tgrid');
-    for (let t = 1; t <= 12; t++) { const b = document.createElement('button'); b.dataset.key = t; b.innerHTML = '<b>' + t + '×</b><small class="stars3"></small>'; tg.appendChild(b); }
-    const mix = document.createElement('button'); mix.className = 'mix'; mix.dataset.key = 'mix'; mix.innerHTML = '<b>Mixed up</b><small class="stars3"></small>'; tg.appendChild(mix);
+    for (let t = 1; t <= 12; t++) { const b = document.createElement('button'); b.dataset.key = t; b.innerHTML = '<span class="bslot"></span><b>' + t + '×</b><small class="stars3"></small>'; tg.appendChild(b); }
+    const mix = document.createElement('button'); mix.className = 'mix'; mix.dataset.key = 'mix'; mix.innerHTML = '<span class="bslot"></span><b>Mixed up</b><small class="stars3"></small>'; tg.appendChild(mix);
     tg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) startQuiz(b.dataset.key); });
     $('qOpts').addEventListener('click', e => { const b = e.target.closest('button'); if (b) startQuiz(b.dataset.key); });
     $('clockBtn').addEventListener('click', () => { set({ clock: !S.clock }); save(); });
@@ -1292,7 +1322,7 @@
     if (S.potty >= 65) return 'I think I need the loo soon…';
     if (S.want) return wantText(S.want);
     const open = openLearnJob();
-    if (open && Math.floor(Date.now() / 15000) % 3 === 0) return "Today's job: " + QUIZ[open.id.slice(5)].title + '. Shall we?';
+    if (open && Math.floor(Date.now() / 15000) % 3 === 0) return "Today's job: " + fillName(jobInfo(open.id).label) + '. Shall we?';
     if (isNight() && S.needs.energy < 70) return "It's nearly bedtime!";
     const slot = Math.floor(Date.now() / 20000) % 4, sl = sceneLine(), wl = weatherLine();
     if (sl && (slot === 1 || slot === 3)) return sl;
@@ -1380,6 +1410,8 @@
       document.querySelectorAll('#pickSheet [data-game]').forEach(b => {
         const on = !!(S.want && S.want.kind === b.dataset.game);
         b.classList.toggle('wanted', on); b.querySelector('.tag').hidden = !on;
+        const k = b.dataset.game, ct = b.querySelector('.ctag');
+        if (QUIZ[k]) { const m = bestBonus(k); ct.hidden = on; ct.className = 'ctag bonus x' + Math.max(2, m); text(ct, k === 'tables' ? 'Top prizes ×' + m : m > 1 ? '×' + m + ' coins' : 'Coins'); ct.hidden = on || (k !== 'tables' && m < 2); }
       });
     }
 
@@ -1491,14 +1523,15 @@
       show('tgrid', g.kind === 'tables'); show('qOpts', g.kind !== 'tables'); show('clockBtn', !!Q.keypad);
       if (g.kind === 'tables') {
         const w = S.want && S.want.kind === 'tables' ? String(S.want.table) : null;
+        const counts = practiceCounts();
         $('tgrid').querySelectorAll('button').forEach(b => {
-          const k = b.dataset.key; html(b.querySelector('small'), starStr(S.stars['tables:' + k] || 0));
+          const k = b.dataset.key; html(b.querySelector('small'), starStr(S.stars['tables:' + k] || 0)); html(b.querySelector('.bslot'), bonusBadge(bonusFor('tables', k, counts)));
           b.classList.toggle('wanted', w === k);
         });
       } else {
         const tw = trickyWords().length;
         html($('qOpts'), Q.opts.filter(([k]) => k !== 'tricky' || tw >= 3).map(([k, label]) =>
-          '<button data-key="' + k + '"' + (S.want && S.want.kind === g.kind ? ' class="wanted"' : '') + '><span>' + label + (k === 'tricky' ? ' (' + tw + ')' : '') + '</span><small class="stars3">' + starStr(S.stars[g.kind + ':' + k] || 0) + '</small></button>').join(''));
+          '<button data-key="' + k + '"' + (S.want && S.want.kind === g.kind ? ' class="wanted"' : '') + '><span>' + label + (k === 'tricky' ? ' (' + tw + ')' : '') + ' ' + bonusBadge(bonusFor(g.kind, k)) + '</span><small class="stars3">' + starStr(S.stars[g.kind + ':' + k] || 0) + '</small></button>').join(''));
       }
       $('clockBtn').setAttribute('aria-pressed', String(!!S.clock));
       text($('clockBtn').querySelector('.ms'), S.clock ? 'timer' : 'timer_off');
@@ -1559,7 +1592,7 @@
       text($('doneBig'), big); text($('doneText'), sub);
       show('doneStars', quiz); if (quiz) html($('doneStars'), starStr(g.stars || 0));
       show('doneExtra', !!extra); html($('doneExtra'), extra);
-      html($('doneCoins'), '<span class="coin ms">eco</span>+' + (g.coins || 0) + ' lily coins');
+      html($('doneCoins'), '<span class="coin ms">eco</span>+' + (g.coins || 0) + ' lily coins' + (g.bonus > 1 ? ' <span class="bonus x' + g.bonus + '">×' + g.bonus + ' bonus!</span>' : ''));
     }
   }
 
