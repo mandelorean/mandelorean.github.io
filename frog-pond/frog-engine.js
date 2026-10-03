@@ -108,7 +108,7 @@
       const mud = [[.5, -.1, .85, .16], [-.55, .35, .7, .12], [.85, .3, .2, .14], [-.8, -.2, .4, .15], [.25, .7, .45, .1], [-.2, -.45, .85, .11], [.3, .5, -.8, .14]]
         .map(([x, y, z, r]) => { const m = stick(sph(r, MUD, 1, .25, 1), x, y, z, .01); m.visible = false; g.add(m); return m; });
       const anchor = new T.Group(); anchor.position.set(0, 1.74, -.08); g.add(anchor);
-      return { kind: 'frog', g, mats: [mb, ms], eyes, mouth, mud, stub, anchor };
+      return { kind: 'frog', g, mats: [mb, ms], paint: { body: mb, belly: mbe, spot: ms }, eyes, mouth, mud, stub, anchor };
     }
     function buildTad() {
       const g = new T.Group();
@@ -129,7 +129,7 @@
       const mud = [[.5, .3, .6, .1], [-.55, .1, .6, .09], [.2, .8, -.2, .1], [-.4, .6, .2, .08]]
         .map(([x, y, z, r]) => { const m = stick(sph(r, MUD, 1, .25, 1), x, y, z, .01); m.visible = false; g.add(m); return m; });
       const anchor = new T.Group(); anchor.position.set(0, 1.5, -.05); anchor.scale.setScalar(.72); g.add(anchor);
-      return { kind: 'tad', g, mats: [mb], eyes, mouth, mud, segs, anchor };
+      return { kind: 'tad', g, mats: [mb], paint: { body: mb, belly: mbe }, eyes, mouth, mud, segs, anchor };
     }
     function buildEgg() {
       const g = new T.Group();
@@ -207,9 +207,11 @@
     }
 
     if (pal.pad !== null) {
-      const pad = new T.Mesh(new T.CylinderGeometry(1.95, 2.05, .16, 72), mat(pal.pad, { roughness: .55, clearcoat: .3 }));
+      // a lily pad has a notch cut out of it; put it at the back where it won't hide the frog
+      const notch = opts.padNotch ? .42 : 0, start = 3.55 + notch / 2, len = Math.PI * 2 - notch;
+      const pad = new T.Mesh(new T.CylinderGeometry(1.95, 2.05, .16, 72, 1, false, start, len), mat(pal.pad, { roughness: .55, clearcoat: .3, side: T.DoubleSide }));
       pad.position.y = -.08; pad.receiveShadow = true; scene.add(pad);
-      const top = new T.Mesh(new T.CylinderGeometry(1.6, 1.6, .02, 72), mat(pal.padTop, { roughness: .6, clearcoat: .2 }));
+      const top = new T.Mesh(new T.CylinderGeometry(1.6, 1.6, .02, 72, 1, false, start, len), mat(pal.padTop, { roughness: .6, clearcoat: .2 }));
       top.position.y = .006; top.receiveShadow = true; scene.add(top);
     }
     const shadow = new T.Mesh(new T.PlaneGeometry(14, 14), new T.ShadowMaterial({ opacity: opts.shadow ?? .2 }));
@@ -234,7 +236,7 @@
     const fx = {};
     const tgt = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0, night: 0 };
     const cur = { mouth: .5, eye: 1, sad: 0, dirty: 0, look: 0, night: 0 };
-    let mood = 'ok', sleeping = false, dayMul = 1;
+    let mood = 'ok', sleeping = false, dayMul = 1, rainbow = false, colourKey = '';
     const lightBase = { hemi: hemi.intensity, key: key.intensity, rim: rim.intensity, fill: fill.intensity };
     const look = { x: 0, y: 0 }, lookCur = { x: 0, y: 0 };
     let yaw = 0, pitch = 0, drag = null;
@@ -333,6 +335,11 @@
           c.segs.forEach((sg, i) => { sg.rotation.y = Math.sin(t * 8 * energy - i * .8) * .28; });
         }
         if (c.kind === 'egg') c.eggs.forEach((e, i) => { e.rotation.z = Math.sin(t * 2 + i * 1.7) * .06; e.scale.setScalar(1 + Math.sin(t * 2.4 + i) * .015); });
+        if (rainbow && c.paint) {
+          const hue = (t * .05) % 1;
+          c.paint.body.userData.base.setHSL(hue, .62, .5); c.paint.body.userData.sad.copy(c.paint.body.userData.base).lerp(sadGrey, .65);
+          if (c.paint.spot) { c.paint.spot.userData.base.setHSL((hue + .12) % 1, .7, .42); c.paint.spot.userData.sad.copy(c.paint.spot.userData.base).lerp(sadGrey, .65); }
+        }
         c.mats.forEach(m => m.color.copy(m.userData.base).lerp(m.userData.sad, cur.sad));
         c.eyes.forEach(e => {
           e.inner.scale.y = Math.max(.06, cur.eye * blink * (1 - fx.squint * .88));
@@ -587,6 +594,21 @@
       burstAt(x, y, z, n) { burst(new T.Vector3(x, y, z), n); },
       setExtras(on) { for (const k in extras) { const v = !!(on && on[k]); if (extras[k].visible !== v) { extras[k].visible = v; if (v) { const g = extras[k], s = g.scale.x || 1; tween(.6, p => g.scale.setScalar(Math.max(.001, s * elastic(p)))); } } } },
       setDaylight(m) { dayMul = m; },
+      // colours: { key, body, belly, spot, tad, tadBelly, rainbow }
+      setColour(c) {
+        if (!c || c.key === colourKey) return; colourKey = c.key; rainbow = !!c.rainbow;
+        const paint = (m, hex) => { if (!m || hex == null) return; m.color.setHex(hex); m.userData.base = m.color.clone(); m.userData.sad = m.color.clone().lerp(sadGrey, .65); };
+        const f = creatures.frog.paint, tp = creatures.tad.paint;
+        paint(f.body, c.body); paint(f.belly, c.belly); paint(f.spot, c.spot); paint(tp.body, c.tad); paint(tp.belly, c.tadBelly);
+      },
+      hop() {
+        tween(.8, p => {
+          if (p < .2) { const q = p / .2; fx.sy = 1 - .15 * q; fx.sx = 1 + .08 * q; }
+          else if (p < .8) { const q = Math.sin((p - .2) / .6 * Math.PI); fx.y = q * .7; fx.sy = 1 + .06 * q; fx.open = .4; }
+          else { const q = Math.sin((p - .8) / .2 * Math.PI); fx.sy = 1 - .1 * q; fx.sx = 1 + .05 * q; }
+        });
+      },
+      lookAround() { tween(2.4, p => { fx.ry = Math.sin(p * Math.PI * 2) * .55 * Math.sin(p * Math.PI); look.x = Math.sin(p * Math.PI * 2); }); },
       snapshot() { renderer.render(scene, camera); return cv.toDataURL('image/png'); },
       burst,
       hitTest,

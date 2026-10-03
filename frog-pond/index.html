@@ -24,7 +24,19 @@
 <body>
 <div id="app">
   <div class="pond" id="pond">
-    <div class="sky-orb" id="orb"></div>
+    <div class="backdrop" aria-hidden="true">
+      <div class="bd-sky"><div class="bd-stars" id="stars"></div></div>
+      <div class="sky-orb" id="orb"></div>
+      <div class="bd-clouds" id="clouds"></div>
+      <svg class="bd-trees" viewBox="0 0 400 40" preserveAspectRatio="none"><path id="treesPath"/></svg>
+      <div class="bd-water"><div class="bd-shine"></div><div class="bd-ripples" id="ripples"></div></div>
+      <div class="bd-pad p1"></div><div class="bd-pad p2"></div><div class="bd-pad p3"><i></i></div><div class="bd-pad p4"></div>
+      <svg class="bd-reeds l" id="reedsL" viewBox="0 0 90 120" preserveAspectRatio="xMinYMax meet"></svg>
+      <svg class="bd-reeds r" id="reedsR" viewBox="0 0 90 120" preserveAspectRatio="xMaxYMax meet"></svg>
+      <div class="bd-mist"></div>
+      <div class="bd-snow"></div>
+      <div class="bd-flash"></div>
+    </div>
     <div class="fireflies" id="fireflies"></div>
     <div class="rain" id="rain" hidden></div>
     <div class="night" id="night" hidden></div>
@@ -47,6 +59,17 @@
     <div class="stagebox">
       <div class="glow" id="glow" hidden></div>
       <div id="scene"></div>
+      <button class="wx" id="wx" hidden aria-label="Weather in Fleet"><span class="ms" id="wxIcon"></span><span id="wxTemp"></span></button>
+      <button class="jobs" id="jobsBtn" hidden><span class="ms">checklist</span><span id="jobsCount"></span></button>
+      <div class="popq" id="popq" hidden>
+        <div class="popq-card">
+          <div class="popq-lbl" id="popqLbl"></div>
+          <div class="popq-q" id="popqQ"></div>
+          <button class="say sm" id="popqSay" hidden><span class="ms">volume_up</span>Hear it</button>
+          <div class="popq-ch" id="popqCh"></div>
+          <button class="link" id="popqNo">Not now</button>
+        </div>
+      </div>
       <div class="zzz" id="zzz" hidden><span>z</span><span style="animation-delay:1.2s;font-size:24px">z</span><span style="animation-delay:2.4s;font-size:36px">Z</span></div>
       <div class="loo" id="looSign" hidden><span class="ms">wc</span><b>Back soon!</b></div>
       <div class="speech" id="speech" hidden aria-live="polite"></div>
@@ -88,7 +111,8 @@
         <button class="done" data-close>Done</button>
       </div>
       <div class="tabs" id="tabs" role="tablist">
-        <button data-tab="hats" role="tab">Dress up</button>
+        <button data-tab="hats" role="tab">Hats</button>
+        <button data-tab="colours" role="tab">Colours</button>
         <button data-tab="pond" role="tab">Pond</button>
         <button data-tab="friends" role="tab">Friends</button>
       </div>
@@ -109,6 +133,17 @@
     </div>
   </div>
 
+  <div class="sheetwrap panel" id="jobsSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Today’s jobs</div>
+        <button class="done" data-close>Done</button>
+      </div>
+      <div class="joblist" id="jobList"></div>
+      <div class="picker-note" id="jobsNote"></div>
+    </div>
+  </div>
+
   <div class="sheetwrap panel" id="pickSheet" hidden>
     <div class="sheet">
       <div class="sheet-head">
@@ -117,8 +152,10 @@
       </div>
       <div class="sec">Play</div>
       <div class="games" id="gamesPlay"></div>
-      <div class="sec">Learn</div>
-      <div class="games" id="gamesLearn"></div>
+      <div class="sec">Maths</div>
+      <div class="games" id="gamesMaths"></div>
+      <div class="sec">Words and time</div>
+      <div class="games" id="gamesWords"></div>
       <div class="picker-note">Games use a little energy and earn lily coins.</div>
     </div>
   </div>
@@ -164,7 +201,7 @@
         <div class="tbar" id="qBarWrap"><div id="qBar"></div></div>
         <div class="q" id="qText"></div>
         <div id="qClockWrap" hidden><svg class="qclock" id="qClock" viewBox="0 0 200 200"></svg></div>
-        <button class="say" id="qSay" hidden><span class="ms">volume_up</span>Hear the word</button>
+        <button class="say" id="qSay" hidden><span class="ms">volume_up</span>Hear it</button>
         <div class="qhint" id="qHint" hidden></div>
         <div class="ans" id="qAns"></div>
         <div class="choices" id="qChoices"></div>
