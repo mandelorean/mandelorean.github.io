@@ -48,7 +48,14 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
 .w-storm .bd-sky{filter:saturate(.25) brightness(.55)}
 .w-snow .bd-sky{filter:saturate(.2) brightness(1.08)}
 .bd-trees{position:absolute;left:-2%;width:104%;top:calc(var(--horizon) - 5.5%);height:6%;color:var(--trees)}
-.bd-trees path{fill:var(--trees)}
+.bd-trees .tl{fill:var(--trees)}
+.scene-garden .bd-trees,.scene-seaside .bd-trees,.scene-rainforest .bd-trees,.scene-garden .bd-reeds,.scene-seaside .bd-reeds,.scene-rainforest .bd-reeds{transition:filter 2s}
+.sky-night:not(.scene-pond) .bd-trees,.sky-night:not(.scene-pond) .bd-reeds{filter:brightness(.38) saturate(.6)}
+.sky-dusk:not(.scene-pond) .bd-trees,.sky-dawn:not(.scene-pond) .bd-trees,.sky-dusk:not(.scene-pond) .bd-reeds,.sky-dawn:not(.scene-pond) .bd-reeds{filter:brightness(.72)}
+.scene-rainforest .bd-trees{top:calc(var(--horizon) - 13%);height:13.5%}
+.scene-seaside .bd-water{filter:hue-rotate(-16deg) saturate(1.5) brightness(1.08)}
+.scene-rainforest .bd-water{filter:hue-rotate(26deg) saturate(1.15)}
+.scene-seaside .bd-pad{display:none}
 .bd-water{position:absolute;left:0;right:0;top:var(--horizon);bottom:0;background:linear-gradient(180deg,var(--water1) 0%,var(--water2) 70%);overflow:hidden}
 .bd-water::before{content:'';position:absolute;left:0;right:0;top:0;height:14%;background:linear-gradient(180deg,var(--sky2),transparent);opacity:.35}
 .w-rain .bd-water,.w-storm .bd-water,.w-cloudy .bd-water,.w-fog .bd-water{filter:saturate(.6)}
@@ -177,8 +184,9 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
 
 /* Shop */
 .wallet{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:900;color:#8A5A00}
-.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:4px;border-radius:18px;background:#F1F3EE}
-.tabs button{height:40px;border-radius:14px;border:0;background:none;color:#55615A;font-size:15px;padding:0 2px;font-weight:800;cursor:pointer}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:6px;padding:4px;border-radius:18px;background:#F1F3EE}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;height:40px;border-radius:14px;border:0;background:none;color:#55615A;font-size:15px;padding:0 14px;font-weight:800;cursor:pointer}
 .tabs button[aria-selected="true"]{background:#fff;color:#1F2A22;box-shadow:0 2px 6px rgba(0,0,0,.08)}
 .items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .item-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px 10px;border-radius:20px;border:3px solid transparent;background:#F6F7F2;cursor:pointer;color:#1F2A22}
@@ -386,3 +394,6 @@ small.stars3 i{font-style:normal;color:#D8DCD5}
 .popq-ch button.no{border-color:#E86A6A;background:#FDECEC}
 .say.sm{height:42px;font-size:16px;padding:0 18px;gap:6px}
 .say.sm .ms{font-size:22px}
+
+.item-card .note{font-size:11.5px;line-height:1.15;color:#7A857D;font-weight:700;padding:0 4px;text-align:center}
+.item-card .pr .ms{font-size:16px;margin-right:2px}

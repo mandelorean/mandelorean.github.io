@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-03.5'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-03.6'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -20,16 +20,43 @@
   const colorOf = k => NEED.find(n => n.k === k).color;
   const STAGE_NAME = { egg: 'Egg', tadpole: 'Tadpole', froglet: 'Froglet', frog: 'Frog' };
 
-  // Shop: [id, name, price, colour, icon]
+  // Shop: [id, name, price, colour, icon, extras]
+  //   extras: treat (eaten straight away), need/needText (unlocked by learning), slot (clothes), auto (weather clothes), scene, note
+  const WARM = () => (wxFresh() ? WX.temp >= 15 : [4, 5, 6, 7].includes(new Date().getMonth()));
+  const CHILLY = () => (wxFresh() ? WX.temp <= 10 || wxKind() === 'snow' : [10, 11, 0, 1].includes(new Date().getMonth()));
+  const coldNow = () => wxFresh() && (WX.temp <= 8 || wxKind() === 'snow');
   const SHOP = {
+    treats: [['t_dragonfly', 'Dragonfly delight', 8, '#2FB7C9', 'emoji_nature', { treat: 'dragonfly', gifts: { food: 45, love: 5 }, line: 'A dragonfly! My favourite!' }],
+      ['t_burger', 'Bug burger', 10, '#C8873A', 'lunch_dining', { treat: 'burger', gifts: { food: 40, fun: 15 }, line: 'A bug burger! Yum yum yum!' }],
+      ['t_smoothie', 'Pond smoothie', 8, '#7fca78', 'local_drink', { treat: 'smoothie', gifts: { energy: 25, fun: 5 }, line: 'Slurp! I feel full of beans!' }],
+      ['t_lolly', 'Ice lolly', 6, '#FF8FC0', 'icecream', { treat: 'lolly', gifts: { fun: 20, food: 10 }, ok: WARM, okText: 'Only when it’s warm in Fleet', line: 'Brain freeze! Hee hee.' }],
+      ['t_cocoa', 'Hot chocolate', 6, '#8B5A3C', 'coffee', { treat: 'cocoa', gifts: { love: 15, energy: 10 }, ok: CHILLY, okText: 'Only when it’s chilly in Fleet', line: 'Mmm, warm and cosy!' }],
+      ['t_cake', 'Birthday cake', 15, '#FFB3D1', 'cake', { treat: 'cake', gifts: { food: 20, fun: 20, love: 20 }, line: 'Cake! Is it a party? Hooray!' }]],
     hats: [['none', 'No hat', 0, '#C9CFC6', 'block'], ['crown', 'Crown', 0, '#F5C542', 'workspace_premium'], ['bow', 'Bow', 0, '#FF7EB6', 'favorite'],
       ['party', 'Party hat', 0, '#6F8CFF', 'celebration'], ['flower', 'Flower', 0, '#FFA6CF', 'local_florist'], ['cap', 'Cap', 20, '#E84545', 'sports_baseball'],
-      ['sunnies', 'Sunnies', 25, '#FF4D7D', 'visibility'], ['wizard', 'Wizard hat', 30, '#6B4BD6', 'auto_fix_high'], ['tiara', 'Tiara', 35, '#9FB4CC', 'diamond']],
+      ['sunnies', 'Sunnies', 25, '#FF4D7D', 'visibility'], ['bobble', 'Bobble hat', 25, '#E23B3B', 'ac_unit', { note: 'Puts it on when it’s cold in Fleet' }],
+      ['wizard', 'Wizard hat', 30, '#6B4BD6', 'auto_fix_high'], ['tiara', 'Tiara', 35, '#9FB4CC', 'diamond'],
+      ['mortar', 'Graduation cap', 50, '#1F2A22', 'school', { need: s => !!s.stickers.timesall, needText: 'Win the Tables legend sticker' }],
+      ['bee', 'Bee antennae', 50, '#F5B915', 'emoji_nature', { need: s => (s.stars['spell:y56'] || 0) >= 3, needText: '3 stars at Year 5 and 6 spelling' }]],
+    clothes: [['scarf', 'Woolly scarf', 25, '#E23B3B', 'checkroom', { slot: 'neck', note: 'Also puts it on when it’s cold' }], ['bowtie', 'Bow tie', 20, '#6F8CFF', 'style', { slot: 'neck' }],
+      ['cape', 'Superhero cape', 30, '#E84545', 'bolt', { slot: 'neck' }], ['glasses', 'Maths glasses', 25, '#1F2A22', 'eyeglasses', { slot: 'face' }],
+      ['wellies', 'Wellies', 30, '#F5C542', 'water_drop', { auto: 'rain', note: 'Wears them when it rains in Fleet' }], ['umbrella', 'Umbrella', 35, '#FF5C8A', 'beach_access', { auto: 'rain', note: 'Uses it when it rains in Fleet' }]],
+    colours: [],
+    toys: [['ball', 'Beach ball', 25, '#FF6B6B', 'sports_volleyball'], ['wand', 'Bubble wand', 25, '#6fb6ff', 'bubble_chart'], ['kite', 'Kite', 35, '#a780e6', 'air'],
+      ['trampoline', 'Mini trampoline', 40, '#6F8CFF', 'sports_gymnastics'], ['radio', 'Radio', 45, '#ea942f', 'radio']],
     pond: [['flowers', 'Lily flowers', 20, '#FFA6CF', 'local_florist'], ['reeds', 'Bulrushes', 20, '#5AA04A', 'grass'], ['mushroom', 'Toadstool', 25, '#E8443A', 'brightness_5'],
-      ['lantern', 'Lantern', 40, '#F5B915', 'emoji_objects']],
-    friends: [['ladybird', 'Ladybird', 40, '#E8302A', 'bug_report'], ['snail', 'Snail', 50, '#C77A3C', 'pets'], ['dragonfly', 'Dragonfly', 70, '#2FB7C9', 'emoji_nature']],
-    colours: []
+      ['lights', 'Fairy lights', 30, '#FFD66B', 'auto_awesome'], ['stones', 'Stepping stones', 30, '#9AA294', 'circle'], ['waterlilies', 'Water lilies', 35, '#FFB3D1', 'filter_vintage', { note: 'Open by day, close at night' }],
+      ['lantern', 'Lantern', 40, '#F5B915', 'emoji_objects'], ['fountain', 'Fountain', 50, '#37aae3', 'water'], ['jetty', 'Wooden jetty', 60, '#A0703F', 'deck'],
+      ['house', 'Toadstool house', 80, '#E8443A', 'cottage', { note: 'Sleeps inside at bedtime' }],
+      ['clock', 'Golden clock', 60, '#F5C542', 'schedule', { need: s => (s.stars['time:3'] || 0) >= 3, needText: '3 stars telling the time to 5 minutes' }]],
+    friends: [['ladybird', 'Ladybird', 40, '#E8302A', 'bug_report'], ['goldfish', 'Goldfish', 50, '#FF8A2A', 'set_meal'], ['snail', 'Snail', 50, '#C77A3C', 'pets'],
+      ['duckling', 'Duckling', 60, '#FFD84D', 'egg'], ['butterfly', 'Butterfly', 60, '#c77dff', 'flutter_dash'], ['bee_friend', 'Bumblebee', 60, '#F5B915', 'hive'],
+      ['dragonfly', 'Dragonfly', 70, '#2FB7C9', 'emoji_nature'], ['hedgehog', 'Hedgehog', 80, '#8B5A3C', 'pets'], ['babyfrog', 'Baby frog', 120, '#67c24a', 'favorite', { note: 'Copies everything he does' }]],
+    scenes: [['pond', 'Frog Pond', 0, '#2A5A35', 'water', { scene: true }], ['garden', 'Garden pond', 250, '#5AA04A', 'yard', { scene: true }],
+      ['seaside', 'Seaside rock pool', 250, '#37aae3', 'beach_access', { scene: true }], ['rainforest', 'Rainforest', 300, '#1F6B3A', 'forest', { scene: true }],
+      ['giantpad', 'Giant lotus pad', 300, '#FF8FC0', 'spa'], ['castle', 'Frog Castle', 500, '#9FB4CC', 'castle']]
   };
+  const TABS = [['treats', 'Treats'], ['hats', 'Hats'], ['clothes', 'Clothes'], ['colours', 'Colours'], ['toys', 'Toys'], ['pond', 'Pond'], ['friends', 'Friends'], ['scenes', 'Big goals']];
   // Frog colours: body, belly and spots for the frog; body and belly for the tadpole
   const COLOURS = {
     green: { name: 'Classic green', price: 0, swatch: '#67c24a', body: 0x67c24a, belly: 0xe4f6b4, spot: 0x4c9e36, tad: 0x4fb08a, tadBelly: 0xcdf1dc },
@@ -42,8 +69,8 @@
     rainbow: { name: 'Rainbow', price: 120, swatch: 'linear-gradient(135deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#c77dff)', rainbow: true, body: 0x67c24a, belly: 0xffffff, spot: 0x4c9e36, tad: 0x4fb08a, tadBelly: 0xffffff }
   };
   for (const id in COLOURS) SHOP.colours.push([id, COLOURS[id].name, COLOURS[id].price, COLOURS[id].swatch, '']);
+  const ITEM = {}; for (const tab in SHOP) SHOP[tab].forEach(([id, name, price, color, icon, x]) => { ITEM[id] = Object.assign({ id, name, price, color, icon, tab }, x || {}); });
   const hex = n => '#' + n.toString(16).padStart(6, '0');
-  const ITEM = {}; for (const tab in SHOP) SHOP[tab].forEach(([id, name, price, color, icon]) => { ITEM[id] = { id, name, price, color, icon, tab }; });
 
   const PLAY = {
     flies: { title: 'Fly Catch', icon: 'pest_control', color: '#ea942f', desc: 'Tap the buzzy flies', want: 'Fancy a game of Fly Catch?' },
@@ -81,7 +108,7 @@
   const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   // ---------- Real time and weather in Fleet, Hampshire ----------
   // Weather comes from Open-Meteo (free, no account). Only Fleet's coordinates are sent.
-  const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=51.2834&longitude=-0.8412&current=temperature_2m,weather_code,is_day&daily=sunrise,sunset&timezone=Europe%2FLondon&forecast_days=1';
+  const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=51.2834&longitude=-0.8412&current=temperature_2m,weather_code,is_day,wind_speed_10m&daily=sunrise,sunset&timezone=Europe%2FLondon&forecast_days=1';
   let WX = null; try { WX = JSON.parse(localStorage.getItem('fp-weather')); } catch (e) {}
   function londonMins() {
     try {
@@ -111,7 +138,7 @@
     try {
       const r = await fetch(WX_URL, { cache: 'no-store' }); if (!r.ok) return;
       const j = await r.json(), c = j.current;
-      WX = { t: Date.now(), code: c.weather_code, day: c.is_day, temp: Math.round(c.temperature_2m), sunrise: j.daily.sunrise[0], sunset: j.daily.sunset[0] };
+      WX = { t: Date.now(), code: c.weather_code, day: c.is_day, temp: Math.round(c.temperature_2m), wind: c.wind_speed_10m, sunrise: j.daily.sunrise[0], sunset: j.daily.sunset[0] };
       try { localStorage.setItem('fp-weather', JSON.stringify(WX)); } catch (e) {}
       const today = dayKey(new Date());
       if (isRainy() && S.stage !== 'egg' && S.stats.rainDay !== today) { S.stats.rainDay = today; count('rainyDays'); save(); checkStickers(); }
@@ -136,7 +163,7 @@
   // ---------- State ----------
   const base = () => ({
     name: '', stage: 'egg', needs: { food: 72, clean: 80, fun: 58, love: 66, energy: 85 }, xp: 0, hat: 'none', potty: 20, mess: [0, 0, 0], asleep: false,
-    coins: 20, owned: {}, decor: {}, colour: 'green', jobs: null, stars: {}, tricky: {}, history: [], stats: {}, best: {}, stickers: {}, day: '', streak: 0, sound: true, clock: false, last: Date.now()
+    coins: 20, owned: {}, decor: {}, colour: 'green', neck: 'none', face: 'none', scene: 'pond', jobs: null, stars: {}, tricky: {}, history: [], stats: {}, best: {}, stickers: {}, day: '', streak: 0, sound: true, clock: false, last: Date.now()
   });
   const SAVED = Object.keys(base());
   let note = null;
@@ -178,11 +205,11 @@
   const count = (k, n = 1) => { S.stats[k] = (S.stats[k] || 0) + n; };
 
   // ---------- 3D frog ----------
-  let engine = null;
+  let engine = null, autoWear = null;
   function mountEngine() {
     if (!window.FrogEngine || !window.THREE) { setTimeout(mountEngine, 60); return; }
     engine = window.FrogEngine.mount($('scene'), {
-      stage: S.stage, onTap: () => pet(), onMess: i => scoop(i),
+      stage: S.stage, onTap: () => pet(), onMess: i => scoop(i), onToy: k => playToy(k),
       palette: { pad: 0x2a6e37, padTop: 0x358542 }, padNotch: true,
       lights: { sky: 0xa8c6ff, ground: 0x10262e, hemi: .6, key: 0xe6ecff, keyI: .9, rim: 0x8affd2, rimI: 1.4, fillI: .15 },
       shadow: .35
@@ -191,7 +218,13 @@
   }
   function syncEngine() {
     if (!engine) return;
-    engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(S.hat);
+    const cold = coldNow(), wet = isRainy();
+    engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(S.owned.bobble && cold ? 'bobble' : S.hat);
+    engine.setOutfit({ neck: S.owned.scarf && cold ? 'scarf' : S.neck, face: S.face, feet: S.owned.wellies && wet ? 'wellies' : 'none', umbrella: !!(S.owned.umbrella && wet) });
+    engine.setWind(WX && WX.wind);
+    const auto = [S.owned.bobble && cold && 'bobble', S.owned.scarf && cold && 'scarf', S.owned.wellies && wet && 'wellies', S.owned.umbrella && wet && 'umbrella'].filter(Boolean).join();
+    if (autoWear !== null && auto !== autoWear && auto && S.stage !== 'egg') setTimeout(() => say(wet ? "It's raining in Fleet! " + (S.owned.wellies ? 'Wellies on!' : 'Umbrella up!') : "Brrr, it's cold in Fleet! Wrapping up warm.", 3000), 50);
+    autoWear = auto;
     engine.setDirty(S.needs.clean < 40 ? (40 - S.needs.clean) / 40 : 0);
     engine.setMess(S.mess); engine.setExtras(S.stage === 'egg' ? {} : S.decor);
     engine.setColour(Object.assign({ key: S.colour }, COLOURS[S.colour] || COLOURS.green));
@@ -242,7 +275,12 @@
     ['quick', 'Quick thinker', 'bolt', '#E5A50A', 'Answer 10 quick questions', s => (s.stats.popq || 0) >= 10],
     ['newlook', 'New look', 'palette', '#ef5f89', "Change your frog's colour", s => (s.stats.colours || 0) >= 1],
     ['divider', 'Divide and conquer', 'call_split', '#a780e6', '3 stars at division', () => anyStars('divide:', 3)],
-    ['wordwiz', 'Word wizard', 'menu_book', '#2A9DB0', '3 stars at a word game', () => anyStars('words:', 3)]
+    ['wordwiz', 'Word wizard', 'menu_book', '#2A9DB0', '3 stars at a word game', () => anyStars('words:', 3)],
+    ['zoomies', 'Zoomies!', 'directions_run', '#5fd4c4', 'See the after-loo zoomies', s => (s.stats.zoomies || 0) >= 1],
+    ['treat', 'Treat time', 'cake', '#FF8FC0', 'Buy a treat', s => (s.stats.treats || 0) >= 1],
+    ['player', 'Playtime', 'sports_volleyball', '#FF6B6B', 'Play with a toy 10 times', s => (s.stats.toys || 0) >= 10],
+    ['collector', 'Collector', 'inventory_2', '#76cf8a', 'Own 15 things from the shop', s => Object.keys(s.owned).length >= 15],
+    ['royal', 'King of the castle', 'castle', '#8f7fe0', 'Buy the Frog Castle', s => !!s.owned.castle]
   ];
   let checking = false;
   function checkStickers() {
@@ -355,6 +393,7 @@
     if (now >= nextIdle) {
       nextIdle = now + rand(12e3, 25e3);
       const r = Math.random(); if (r < .4) engine.hop(); else if (r < .8) engine.lookAround(); else engine.react('pet');
+      if (S.decor.duckling && Math.random() < .35) setTimeout(() => sfx('quack'), 600);
       if (Math.random() < .4) sfx('ribbit');
     }
     if (now - lastInteract > 30e3 && now >= nextNudge) {
@@ -476,8 +515,11 @@
     engine && engine.hopAway(1.3);
     setTimeout(() => sfx('flush'), 1300);
     setTimeout(() => {
-      S.away = false; S.potty = 0; nextFart = 0; count('loos');
-      give({ love: 5 }, 1); earn(2); say(pick(['Phew! Much better. And I washed my hands!', 'All done! Hands washed, too.']), 3000);
+      S.away = false; S.potty = 0; nextFart = 0; count('loos'); count('zoomies');
+      give({ love: 5 }, 1); earn(2);
+      lock(3900); engine && engine.zoomies(); sfx('zoom'); setTimeout(() => sfx('zoom'), 1700);
+      say(pick(['ZOOMIES! Wheeee!', 'Zoom zoom zoom! Loo zoomies!', 'Nyooooom!']), 3400);
+      setTimeout(() => say(pick(['Phew! Much better. And I washed my hands!', 'All done! Hands washed, too.']), 3000), 3800);
     }, 3300);
   }
   function sleep() {
@@ -556,21 +598,57 @@
 
   // ---------- Shop ----------
   const owns = id => ITEM[id].price === 0 || !!S.owned[id];
+  function equip(it, fresh) {
+    const id = it.id;
+    if (it.tab === 'hats') { set({ hat: id }); if (id !== 'none') say(pick(['Do I look fancy?', 'I love it!', 'So stylish!'])); }
+    else if (it.tab === 'colours') { if (S.colour !== id) { set({ colour: id }); engine && engine.react('celebrate'); say(pick(['Ta-da! A whole new me!', 'Do you like my new colour?', 'Ooh, I feel fabulous!'])); if (id !== 'green') count('colours'); } }
+    else if (it.slot) { const on = S[it.slot] !== id || fresh; set({ [it.slot]: on ? id : 'none' }); if (on) say(pick(['How do I look?', 'Very smart!', 'I love it!'])); if (S.stage === 'tadpole') say("I'll wear it when I grow legs!"); }
+    else if (it.auto) say(it.note + '!', 2600);
+    else if (it.scene) { if (S.scene !== id) { set({ scene: id }); say(pick(['Ooh, a new home!', 'Wow, look at this place!', 'I love it here!'])); } }
+    else { const on = fresh || !S.decor[id]; set({ decor: Object.assign({}, S.decor, { [id]: on }) }); if (on) say(pick(['Ooh, lovely!', 'My pond looks amazing!', 'Hello, friend!', 'Wow, thank you!'])); }
+    checkStickers();
+  }
   function tapItem(id) {
     const it = ITEM[id];
-    if (owns(id)) {
-      if (it.tab === 'hats') { set({ hat: id, confirm: null }); if (id !== 'none') say(pick(['Do I look fancy?', 'I love it!', 'So stylish!'])); }
-      else if (it.tab === 'colours') { if (S.colour !== id) { set({ colour: id, confirm: null }); engine && engine.react('celebrate'); say(pick(['Ta-da! A whole new me!', 'Do you like my new colour?', 'Ooh, I feel fabulous!'])); if (id !== 'green') count('colours'); checkStickers(); } }
-      else { const decor = Object.assign({}, S.decor, { [id]: !S.decor[id] }); set({ decor, confirm: null }); if (decor[id]) say(pick(['Ooh, lovely!', 'My pond looks amazing!', 'Hello, friend!'])); }
-      save(); return;
+    if (it.need && !it.need(S) && !owns(id)) { sfx('no'); say('To unlock that: ' + it.needText.charAt(0).toLowerCase() + it.needText.slice(1) + '!', 3000); return; }
+    if (it.treat) {
+      if (it.ok && !it.ok()) { sfx('no'); say('Maybe another day! ' + it.okText + '.', 2600); return; }
+      if (!canAct()) { say('Not right now!', 1500); return; }
+      if (S.coins < it.price) { sfx('no'); say('I need ' + (it.price - S.coins) + ' more lily coins for that.', 2200); return; }
+      if (S.confirm !== id) { set({ confirm: id }); return; }
+      set({ coins: S.coins - it.price, confirm: null }); count('treats'); save(); sfx('coin');
+      closeSheet(); setTimeout(() => giveTreat(it), 250); return;
     }
+    if (owns(id)) { set({ confirm: null }); equip(it, false); save(); return; }
     if (S.coins < it.price) { sfx('no'); say('I need ' + (it.price - S.coins) + ' more lily coins for that.', 2200); return; }
     if (S.confirm !== id) { set({ confirm: id }); return; }
-    const owned = Object.assign({}, S.owned, { [id]: true }), patch = { owned, coins: S.coins - it.price, confirm: null };
-    if (it.tab === 'hats') patch.hat = id; else if (it.tab === 'colours') { patch.colour = id; count('colours'); setTimeout(() => engine && engine.react('celebrate'), 200); } else patch.decor = Object.assign({}, S.decor, { [id]: true });
-    count('buys'); set(patch); save(); sfx('coin'); setTimeout(() => sfx('fanfare'), 150);
-    say(pick(['Ooh, thank you!', 'Wow! I love it!', 'Best present ever!']));
+    set({ owned: Object.assign({}, S.owned, { [id]: true }), coins: S.coins - it.price, confirm: null });
+    count('buys'); equip(it, true); save(); sfx('coin'); setTimeout(() => sfx('fanfare'), 150);
+    if (!it.auto) say(pick(['Ooh, thank you!', 'Wow! I love it!', 'Best present ever!']));
     checkStickers();
+  }
+  function giveTreat(it) {
+    engine && engine.eat(it.treat); lock(1900);
+    setTimeout(() => sfx(it.treat === 'smoothie' || it.treat === 'cocoa' ? 'slurp' : 'crunch'), it.treat === 'dragonfly' ? 1300 : 600);
+    setTimeout(() => {
+      if (it.gifts.food) S.potty += 10;
+      give(it.gifts, 1); addHearts(); if (it.treat === 'cake') sfx('fanfare');
+      say(it.line, 2800);
+    }, 1700);
+  }
+  const TOY_LINE = { ball: 'Header! Did you see that?', wand: 'Bubbles everywhere!', trampoline: 'Boing boing boing!', radio: 'I love this song! Dance with me!', kite: 'Wheee! Look at it fly!' };
+  function playToy(k) {
+    if (S.asleep) { say('Zzz… play tomorrow…', 1800); return; }
+    if (!canAct()) return;
+    if (S.needs.energy < 10) { engine && engine.yawn(); say('Too sleepy to play…'); return; }
+    const ms = engine ? engine.playToy(k) : 0; if (!ms) return;
+    lock(ms); count('toys');
+    if (k === 'ball' || k === 'trampoline') [0, 1, 2].forEach(i => setTimeout(() => sfx('boing'), 300 + i * (k === 'ball' ? 450 : 730)));
+    if (k === 'wand') [0, 1, 2, 3, 4].forEach(i => setTimeout(() => sfx('pop'), 400 + i * 300));
+    if (k === 'radio') sfx('tune');
+    if (k === 'kite') sfx('whoosh');
+    say(TOY_LINE[k], Math.min(ms, 3000));
+    setTimeout(() => { give({ fun: 12, love: 3, energy: -2 }, (S.stats.toys || 0) % 3 === 0 ? 1 : 0); checkStickers(); }, ms);
   }
 
   // ---------- Photo booth ----------
@@ -914,22 +992,47 @@
   let restoring = false;
   function toggleSound() { set({ sound: !S.sound }); Sound.setMuted(!S.sound); save(); if (S.sound) sfx('ribbit'); }
 
+  // ---------- Scenery for each scene: horizon (viewBox 400×40) and corner clumps (90×120) ----------
+  let builtScene = null;
+  function buildScenery(scene) {
+    builtScene = scene;
+    const R = Math.random, bumps = (step, lo, hi) => { let d = ''; for (let x = 0; x <= 400; x += step + R() * step) d += ' Q' + (x + 4).toFixed(0) + ' ' + (lo + R() * (hi - lo)).toFixed(0) + ' ' + (x + step).toFixed(0) + ' ' + (hi + R() * 4).toFixed(0); return d; };
+    let hz = '', corner = () => '';
+    if (scene === 'garden') {
+      hz = '<path d="M0 40 L0 18' + bumps(12, 10, 20) + ' L400 20 L400 40 Z" fill="#2f6b3a"/>' +
+        '<path d="M298 40 L298 14 L322 3 L346 14 L346 40 Z" fill="#9a6a44"/><rect x="314" y="24" width="12" height="16" fill="#5a3a24"/><rect x="330" y="17" width="9" height="7" fill="#cfe8f2"/>';
+      let f = ''; for (let x = 0; x < 400; x += 9) if (x < 292 || x > 350) f += 'M' + x + ' 40 L' + x + ' 27 L' + (x + 3) + ' 23 L' + (x + 6) + ' 27 L' + (x + 6) + ' 40 Z ';
+      hz += '<path d="' + f + 'M0 31 L292 31 L292 33 L0 33 Z M350 31 L400 31 L400 33 L350 33 Z" fill="#f4f0e6"/>';
+      corner = () => { let h = ''; [[12, 40, '#ff7eb6'], [28, 20, '#ffd23f'], [44, 48, '#a780e6'], [58, 28, '#ff8a2a'], [74, 52, '#ff5c8a']].forEach(([x, top, c]) => { top += R() * 12;
+        h += '<path d="M' + x + ' 120 L' + (x + 1) + ' ' + top + '" stroke="#3f8a3f" stroke-width="3"/><ellipse cx="' + (x - 6) + '" cy="' + (top + 30) + '" rx="7" ry="3" fill="#3f8a3f"/>';
+        for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; h += '<circle cx="' + (x + 1 + Math.cos(a) * 6) + '" cy="' + (top + Math.sin(a) * 6) + '" r="4.5" fill="' + c + '"/>'; }
+        h += '<circle cx="' + (x + 1) + '" cy="' + top + '" r="3.5" fill="#fff3a0"/>'; }); return h; };
+    } else if (scene === 'seaside') {
+      hz = '<path d="M0 40 L0 12 Q30 6 60 14 Q90 8 120 22 Q140 30 160 34 L160 40 Z" fill="#b89c6c"/><path d="M0 12 Q30 6 60 14 Q90 8 120 22 L118 25 Q90 13 60 18 Q30 11 0 16 Z" fill="#6aa84f"/>' +
+        '<path d="M322 40 L327 6 L337 6 L342 40 Z" fill="#f6f6f2"/><path d="M325 26 L339 26 L340.5 33 L323.5 33 Z M327.5 12 L336.5 12 L337.5 19 L326.5 19 Z" fill="#e23b3b"/><rect x="326" y="1" width="12" height="6" fill="#ffe28a"/><path d="M324 1 L332 -4 L340 1 Z" fill="#e23b3b"/>' +
+        '<path d="M220 37 L250 37 L246 40 L224 40 Z M234 37 L234 26 L246 35 Z" fill="#f4f0e6"/>';
+      corner = () => { let h = ''; [[18, 98, 22, 14], [50, 104, 26, 16], [74, 92, 16, 22]].forEach(([x, y, rx, ry]) => { h += '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="#8d8f92"/><ellipse cx="' + (x - 4) + '" cy="' + (y - 5) + '" rx="' + rx * .5 + '" ry="' + ry * .4 + '" fill="#a7a9ab"/>'; });
+        const st = (cx, cy, r, c) => { let d = ''; for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? r * .45 : r; d += (i ? 'L' : 'M') + (cx + Math.cos(a) * rr).toFixed(1) + ' ' + (cy + Math.sin(a) * rr).toFixed(1); } return '<path d="' + d + 'Z" fill="' + c + '"/>'; };
+        return h + st(40, 80, 11, '#ff8a2a') + st(70, 72, 7, '#ff7eb6'); };
+    } else if (scene === 'rainforest') {
+      hz = '<path d="M0 40 L0 10' + bumps(14, 0, 12) + ' L400 10 L400 40 Z" fill="#14532d"/><path d="M0 40 L0 22' + bumps(10, 12, 24) + ' L400 24 L400 40 Z" fill="#1f6b3a"/>';
+      corner = () => { let h = ''; [[20, 30, -30], [45, 15, 10], [70, 40, 35], [30, 60, -15]].forEach(([x, top, rot]) => { top += R() * 8;
+        h += '<g transform="rotate(' + rot + ' ' + x + ' 120)"><path d="M' + x + ' 120 L' + x + ' ' + (top + 30) + '" stroke="#14532d" stroke-width="3"/><ellipse cx="' + x + '" cy="' + (top + 18) + '" rx="15" ry="26" fill="#1f7a3e"/><path d="M' + x + ' ' + (top - 6) + ' L' + x + ' ' + (top + 42) + '" stroke="#0f4a26" stroke-width="1.5"/></g>'; });
+        return h + '<circle cx="62" cy="52" r="6" fill="#ff5c8a"/><circle cx="62" cy="52" r="2.5" fill="#ffd23f"/>'; };
+    } else {
+      hz = '<path class="tl" d="M0 40 L0 22' + bumps(8, 4, 18) + ' L400 22 L400 40 Z"/>';
+      // a clump of tapered leaves and a few bulrush heads, leaning outwards
+      corner = () => { let h = ''; [[10, 30, -14, 0], [22, 8, -6, 1], [30, 44, 4, 0], [40, 18, -2, 1], [52, 52, 12, 0], [62, 34, 8, 1], [74, 64, 18, 0]].forEach(([x, top, lean, head]) => {
+        top += R() * 10; const w = 4 + R() * 2;
+        h += '<path d="M' + (x - w) + ' 120 Q' + (x + lean * .2) + ' ' + (top + 50) + ' ' + (x + lean) + ' ' + top + ' Q' + (x + lean * .2 + w * .6) + ' ' + (top + 50) + ' ' + (x + w) + ' 120 Z" fill="currentColor"/>';
+        if (head) h += '<rect x="' + (x + lean * .9 - 3.5) + '" y="' + (top + 2) + '" width="7" height="20" rx="3.5" fill="#4a2e1c" opacity=".85"/>'; }); return h; };
+    }
+    $('trees').innerHTML = hz; $('reedsL').innerHTML = corner(); $('reedsR').innerHTML = corner();
+  }
+
   // ---------- Build static bits ----------
   (function build() {
-    // pond scenery: tree line, bulrushes, floating lily pads, ripples, stars and clouds
-    let d = 'M0 40 L0 22'; for (let x = 0; x <= 400; x += 8 + Math.random() * 14) d += ' Q' + (x + 4).toFixed(0) + ' ' + (4 + Math.random() * 14).toFixed(0) + ' ' + (x + 10).toFixed(0) + ' ' + (16 + Math.random() * 8).toFixed(0);
-    $('treesPath').setAttribute('d', d + ' L400 22 L400 40 Z');
-    const reeds = () => {
-      // a clump of tapered leaves and a few bulrush heads, leaning outwards
-      let h = '';
-      [[10, 30, -14, 0], [22, 8, -6, 1], [30, 44, 4, 0], [40, 18, -2, 1], [52, 52, 12, 0], [62, 34, 8, 1], [74, 64, 18, 0]].forEach(([x, top, lean, head]) => {
-        top += Math.random() * 10; const w = 4 + Math.random() * 2;
-        h += '<path d="M' + (x - w) + ' 120 Q' + (x + lean * .2) + ' ' + (top + 50) + ' ' + (x + lean) + ' ' + top + ' Q' + (x + lean * .2 + w * .6) + ' ' + (top + 50) + ' ' + (x + w) + ' 120 Z" fill="currentColor"/>';
-        if (head) h += '<rect x="' + (x + lean * .9 - 3.5) + '" y="' + (top + 2) + '" width="7" height="20" rx="3.5" fill="#4a2e1c" opacity=".85"/>';
-      });
-      return h;
-    };
-    $('reedsL').innerHTML = reeds(); $('reedsR').innerHTML = reeds();
+    // pond scenery: ripples, stars and clouds (the horizon and corners depend on the scene)
     $('ripples').innerHTML = Array.from({ length: 14 }, (_, i) => '<span style="left:' + (5 + Math.random() * 88) + '%;top:' + (8 + Math.random() * 84) + '%;animation-delay:' + (-Math.random() * 4).toFixed(2) + 's;--s:' + (.6 + Math.random() * .8).toFixed(2) + '"></span>').join('');
     $('stars').innerHTML = Array.from({ length: 40 }, () => '<span style="left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 90) + '%;animation-delay:' + (-Math.random() * 4).toFixed(2) + 's;opacity:' + (.4 + Math.random() * .6).toFixed(2) + '"></span>').join('');
     $('clouds').innerHTML = Array.from({ length: 6 }, (_, i) => '<span style="top:' + (62 + i * 5 + Math.random() * 4) + '%;animation-duration:' + (90 + Math.random() * 80).toFixed(0) + 's;animation-delay:' + (-Math.random() * 160).toFixed(0) + 's;--w:' + (90 + Math.random() * 90).toFixed(0) + 'px"></span>').join('');
@@ -996,6 +1099,7 @@
       }
     });
 
+    $('tabs').innerHTML = TABS.map(([k, label]) => '<button data-tab="' + k + '" role="tab">' + label + '</button>').join('');
     $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) set({ tab: b.dataset.tab, confirm: null }); });
     $('items').addEventListener('click', e => { const b = e.target.closest('[data-id]'); if (b) tapItem(b.dataset.id); });
 
@@ -1072,7 +1176,8 @@
     const low = needs.slice().sort((a, b) => a.v - b.v)[0], m = mood();
 
     // sky
-    const ph = skyPhase(), wk = wxKind(), wet = isRainy(), cls = 'pond sky-' + ph + ' w-' + wk;
+    const ph = skyPhase(), wk = wxKind(), wet = isRainy(), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene;
+    if (builtScene !== S.scene) buildScenery(S.scene);
     if ($('pond').className !== cls) $('pond').className = cls;
     const orb = wk === 'clear' || wk === 'partly' ? (ph === 'night' ? 'moon' : 'sun') : '';
     if ($('orb').className !== 'sky-orb ' + orb) $('orb').className = 'sky-orb ' + orb;
@@ -1166,13 +1271,15 @@
     text($('wallet'), String(S.coins));
     $('tabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
     const h = SHOP[S.tab].map(([id]) => {
-      const it = ITEM[id], own = owns(id), on = it.tab === 'hats' ? S.hat === id : it.tab === 'colours' ? S.colour === id : !!S.decor[id];
-      const pr = own ? (it.tab === 'hats' ? (on ? 'Wearing' : 'Wear') : it.tab === 'colours' ? (on ? 'Chosen' : 'Choose') : (on ? 'On' : 'Off'))
-        : S.confirm === id ? 'Tap to buy' : '<span class="coin ms">eco</span>' + it.price;
+      const it = ITEM[id], own = owns(id) && !it.treat, locked = !own && it.need && !it.need(S), off = it.treat && it.ok && !it.ok();
+      const on = it.tab === 'hats' ? S.hat === id : it.tab === 'colours' ? S.colour === id : it.slot ? S[it.slot] === id : it.scene ? S.scene === id : it.auto ? false : !!S.decor[id];
+      const pr = locked ? '<span class="ms">lock</span>Locked' : own ? (it.auto ? 'Owned' : it.tab === 'hats' || it.slot ? (on ? 'Wearing' : 'Wear') : it.tab === 'colours' || it.scene ? (on ? 'Chosen' : 'Choose') : (on ? 'On' : 'Off'))
+        : S.confirm === id ? (it.treat ? 'Tap to give' : 'Tap to buy') : '<span class="coin ms">eco</span>' + it.price;
+      const sub = locked ? it.needText : off ? it.okText : it.note || '';
       const pic = id === 'mushroom' ? 'background:radial-gradient(circle at 30% 35%,#fff 0 9%,transparent 10%),radial-gradient(circle at 68% 40%,#fff 0 8%,transparent 9%),radial-gradient(circle at 50% 70%,#fff 0 7%,transparent 8%),#E8443A' : 'background:' + it.color;
-      return '<button class="item-card' + (on ? ' on' : '') + (!own && S.coins < it.price ? ' poor' : '') + (S.confirm === id ? ' confirm' : '') + '" data-id="' + id + '">' +
+      return '<button class="item-card' + (on ? ' on' : '') + (!own && (S.coins < it.price || locked || off) ? ' poor' : '') + (S.confirm === id ? ' confirm' : '') + '" data-id="' + id + '">' +
         '<span class="pic ms" style="' + pic + '">' + (id === 'mushroom' || it.tab === 'colours' ? '' : it.icon) + '</span><span class="nm">' + it.name + '</span>' +
-        '<span class="pr' + (own ? ' own' : '') + '">' + pr + '</span></button>';
+        '<span class="pr' + (own ? ' own' : '') + '">' + pr + '</span>' + (sub ? '<small class="note">' + esc(sub) + '</small>' : '') + '</button>';
     }).join('');
     html($('items'), h);
   }
@@ -1325,6 +1432,8 @@
       html($('doneCoins'), '<span class="coin ms">eco</span>+' + (g.coins || 0) + ' lily coins');
     }
   }
+
+  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, state: () => S }; // test hook
 
   // ---------- Go ----------
   const iconsOk = () => document.documentElement.classList.add('icons-ok');

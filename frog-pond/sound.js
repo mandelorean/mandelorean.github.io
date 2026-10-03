@@ -77,6 +77,17 @@
       hiss(t, 1.1, 'lowpass', 260, 620, .22, 4, .4);
       const o = tone('sawtooth', 70, 62, t + .1, 1, .05); wobble(o, t, 1, 18, 6);
     },
+    boing(t) { const o = tone('sine', 140, 420, t, .25, .35); wobble(o, t, .25, 18, 40); },
+    slurp(t) { hiss(t, .5, 'bandpass', 600, 1800, .25, 3, .05); tone('sine', 300, 700, t + .1, .35, .08); },
+    whoosh(t) { hiss(t, .7, 'bandpass', 400, 2400, .3, 1.5, .2); },
+    zoom(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const o = tone('sawtooth', 180, 900, t, .7, .12, f); wobble(o, t, .7, 30, 20); },
+    quack(t) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 2; tone('sawtooth', 480, 330, t, .16, .4, f); },
+    tune(t) {
+      // a bouncy little melody with a bass line, about four seconds
+      const mel = [659, 784, 880, 784, 659, 587, 523, 587, 659, 659, 784, 880, 1047, 880, 784, 659];
+      mel.forEach((f, i) => tone('square', f, null, t + i * .25, .2, .06));
+      [131, 196, 165, 196].forEach((f, i) => { for (let j = 0; j < 4; j++) tone('triangle', f, null, t + (i * 4 + j) * .25, .18, .14); });
+    },
     buzz(t) { const o = tone('sawtooth', 210, 230, t, .6, .05); wobble(o, t, .6, 9, 25); }
   };
 
