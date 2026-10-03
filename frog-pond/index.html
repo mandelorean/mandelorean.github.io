@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frog Pond</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#11282F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Frog Pond">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-512.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0..1,0&display=block">
+<style>
+html,body{margin:0;height:100%;background:#11282F;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+@keyframes fp-heart{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{opacity:1;transform:translate(-50%,-12px) scale(1.15)}100%{transform:translate(-50%,-110px) scale(.9);opacity:0}}
+@keyframes fp-drift{0%{transform:translate(0,0);opacity:.15}50%{opacity:1}100%{transform:translate(34px,-46px);opacity:.25}}
+
+html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like "pest_control" if the icon font is missing */
+.ms{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;line-height:1;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 1}
+
+#app{position:fixed;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;font-family:'Nunito',system-ui,sans-serif}
+
+/* Night Pond main screen */
+.pond{position:absolute;inset:0;display:flex;flex-direction:column;background:radial-gradient(120% 75% at 50% 38%,#1F4C52 0%,#11282F 58%,#0A171C 100%);color:#EAF6EF}
+.fireflies{position:absolute;inset:0;pointer-events:none}
+.fireflies span{position:absolute;width:5px;height:5px;border-radius:50%;background:#E9FFA8;box-shadow:0 0 12px 4px rgba(220,255,140,.5);animation:fp-drift ease-in-out infinite alternate}
+.head{position:relative;padding:calc(20px + env(safe-area-inset-top)) 20px 0;display:flex;flex-direction:column;gap:16px;max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+.head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.name{font-size:30px;font-weight:900;line-height:1;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:14px;font-weight:800;flex:none}
+.stage .ms{width:22px;height:22px;border-radius:50%;background:#9DF2C4;color:#0F2A2E;display:grid;place-items:center;font-size:15px}
+.grow{display:flex;flex-direction:column;gap:6px}
+.grow-track{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.grow-fill{height:100%;background:#9DF2C4;border-radius:99px;box-shadow:0 0 12px #9DF2C4;transition:width .6s}
+.grow-label{font-size:13px;color:rgba(234,246,239,.7);font-weight:600}
+.needs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.need{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ring{position:relative;width:62px;height:62px}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring .arc{transition:stroke-dasharray .5s}
+.ring .ms{position:absolute;inset:0;display:grid;place-items:center;font-size:24px}
+.need-label{font-size:13px;font-weight:800;color:rgba(234,246,239,.8)}
+
+.stagebox{position:relative;flex:1;min-height:0}
+.glow{position:absolute;left:50%;top:52%;width:62%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(157,242,196,.32) 0%,rgba(157,242,196,0) 70%);pointer-events:none}
+#scene{position:absolute;inset:0}
+.speech{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);max-width:86%;width:max-content;box-sizing:border-box;padding:10px 18px;border-radius:20px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:18px;font-weight:800;text-align:center;text-wrap:balance;pointer-events:none}
+
+.dockwrap{padding:14px 16px calc(22px + env(safe-area-inset-bottom));max-width:640px;width:100%;margin:0 auto;box-sizing:border-box}
+.dock{display:flex;flex-direction:column;gap:12px;padding:14px 12px 16px;border-radius:30px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.dock-hint{text-align:center;font-size:14px;font-weight:800;color:rgba(234,246,239,.75)}
+.tray{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:grab;touch-action:none}
+.tile .ms{width:62px;height:62px;border-radius:22px;display:grid;place-items:center;color:#10262E;font-size:32px}
+.tile-label{font-size:14px;font-weight:800}
+
+/* Hearts and drag ghost */
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5}
+.fx span{position:absolute;line-height:1;color:#FF5C8A;text-shadow:0 3px 8px rgba(0,0,0,.18)}
+.ghost{position:absolute;width:72px;height:72px;border-radius:24px;display:grid;place-items:center;color:#10262E;font-size:38px;box-shadow:0 12px 30px rgba(0,0,0,.35);pointer-events:none;z-index:30;transition:transform .12s}
+
+/* Bottom sheets */
+.sheetwrap{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center}
+.sheet{width:100%;background:#fff;color:#1F2A22;box-sizing:border-box;display:flex;flex-direction:column}
+.btn-go{border:0;background:#3FA45B;color:#fff;font-weight:800;cursor:pointer;box-shadow:inset 0 -5px 0 rgba(0,0,0,.15)}
+.btn-go:active{transform:scale(.97)}
+
+.egg{padding:0 16px calc(22px + env(safe-area-inset-bottom));z-index:10}
+.egg .sheet{max-width:520px;border-radius:32px;padding:24px 22px 22px;gap:14px;box-shadow:0 18px 50px rgba(0,0,0,.18)}
+.egg h1{margin:0;font-size:30px;font-weight:800;line-height:1.05}
+.egg p{margin:0;font-size:17px;color:#55615A}
+.egg input{height:58px;border-radius:20px;border:2px solid #DCE3DD;padding:0 18px;font:inherit;font-size:22px;font-weight:700;color:#1F2A22;outline:none;background:#F6F8F4;-webkit-user-select:text;user-select:text}
+.egg input:focus{border-color:#3FA45B;background:#fff}
+.ideas{display:flex;flex-wrap:wrap;gap:8px}
+.ideas button{height:40px;padding:0 16px;border-radius:20px;border:0;background:#EEF4EA;color:#2B4A33;font-size:16px;font-weight:700;cursor:pointer}
+.ideas button:hover{background:#E0EDD8}
+.egg .btn-go{height:62px;border-radius:31px;font-size:22px}
+
+.dress{padding:0 12px calc(14px + env(safe-area-inset-bottom));z-index:12}
+.dress .sheet{max-width:560px;border-radius:30px;padding:20px 18px 16px;gap:14px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.dress-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dress-title{font-size:26px;font-weight:800}
+.done{height:44px;padding:0 20px;border-radius:22px;border:0;background:#1F2A22;color:#fff;font-size:17px;font-weight:800;cursor:pointer;flex:none}
+.hats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.hats button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border-radius:20px;border:3px solid transparent;background:#F6F7F2;cursor:pointer;color:#1F2A22}
+.hats button[aria-pressed="true"]{border-color:#1F2A22}
+.hats .dot{width:38px;height:38px;border-radius:50%;box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
+.hats .lbl{font-size:14px;font-weight:700;line-height:1.1;text-align:center}
+.reset{align-self:center;background:none;border:0;color:#8A938C;font-size:14px;font-weight:600;cursor:pointer;padding:4px}
+
+.cele{padding:0 16px calc(22px + env(safe-area-inset-bottom));z-index:15}
+.cele .sheet{max-width:480px;border-radius:32px;padding:24px 22px 20px;gap:10px;align-items:center;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.2)}
+.cele h2{margin:0;font-size:30px;font-weight:800;line-height:1.05;text-wrap:balance}
+.cele p{margin:0;font-size:17px;color:#55615A;text-wrap:pretty}
+.cele .btn-go{margin-top:6px;height:58px;padding:0 44px;border-radius:29px;font-size:22px}
+
+/* Fly Catch */
+.game{position:absolute;inset:0;z-index:20;background:linear-gradient(180deg,#CBEBF7 0%,#B6E3CF 100%);color:#1F2A22;display:flex;flex-direction:column;font-family:'Fredoka',system-ui,sans-serif}
+.game-head{display:flex;align-items:center;justify-content:space-between;padding:calc(18px + env(safe-area-inset-top)) 18px 0;gap:10px}
+.game-close{width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.8);font-size:26px;cursor:pointer;color:#1F2A22;font-variation-settings:'FILL' 0}
+.game-title{font-size:24px;font-weight:600}
+.game-stats{display:flex;gap:6px}
+.chip{height:40px;padding:0 14px;border-radius:20px;background:#fff;display:flex;align-items:center;gap:4px;font-size:18px;font-weight:600;box-sizing:border-box}
+.chip .ms{font-size:20px;color:#E08B1E}
+.chip.dark{background:#1F2A22;color:#fff;font-variant-numeric:tabular-nums}
+.field{position:relative;flex:1;min-height:0;margin:14px 14px calc(14px + env(safe-area-inset-bottom));border-radius:28px;background:rgba(255,255,255,.35);overflow:hidden}
+.fly{position:absolute;width:64px;height:64px;transform:translate(-50%,-50%);cursor:pointer;touch-action:none}
+.fly span{position:absolute;border-radius:50%}
+.fly .w1,.fly .w2{top:12px;width:20px;height:16px;background:rgba(255,255,255,.9);border:1px solid rgba(31,42,34,.15)}
+.fly .w1{left:14px;transform:rotate(-25deg)}
+.fly .w2{left:30px;transform:rotate(25deg)}
+.fly .b{left:21px;top:24px;width:22px;height:20px;background:#23232B}
+.card-wrap{position:absolute;inset:0;display:grid;place-items:center;padding:20px}
+.card{background:#fff;border-radius:30px;padding:26px 22px;max-width:340px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;box-shadow:0 14px 40px rgba(31,42,34,.15)}
+.card h2{margin:0;font-size:28px;font-weight:600;line-height:1.1}
+.card p{margin:0;font-size:18px;color:#55615A;text-wrap:pretty}
+.card .btn-go{height:60px;padding:0 36px;border-radius:30px;font-size:22px;font-weight:600}
+.card .big{font-size:64px;font-weight:600;line-height:1;color:#E08B1E}
+.card .sub{font-size:24px;font-weight:600;line-height:1.1}
+.card.done-card{gap:12px}
+</style>
+<script src="./three.min.js"></script>
+<script src="./frog-engine.js"></script>
+</head>
+<body>
+<div id="app">
+  <div class="pond">
+    <div class="fireflies" id="fireflies"></div>
+    <header class="head" id="head" hidden>
+      <div class="head-row">
+        <div class="name" id="name"></div>
+        <div class="stage"><span class="ms">eco</span><span id="stageName"></span></div>
+      </div>
+      <div class="grow">
+        <div class="grow-track"><div class="grow-fill" id="growFill"></div></div>
+        <div class="grow-label" id="growLabel"></div>
+      </div>
+      <div class="needs" id="needs"></div>
+    </header>
+    <div class="stagebox">
+      <div class="glow" id="glow" hidden></div>
+      <div id="scene"></div>
+      <div class="speech" id="speech" hidden aria-live="polite"></div>
+    </div>
+    <div class="dockwrap" id="dock" hidden>
+      <div class="dock">
+        <div class="dock-hint" id="dockHint"></div>
+        <div class="tray" id="tray"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fx" id="fx"></div>
+  <div class="ghost ms" id="ghost" hidden></div>
+
+  <div class="sheetwrap egg" id="eggSheet" hidden>
+    <div class="sheet">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h1>You found a frog egg!</h1>
+        <p>What should we call your frog?</p>
+      </div>
+      <input id="nameInput" maxlength="14" placeholder="Type a name" autocomplete="off" autocapitalize="words" enterkeyhint="go">
+      <div class="ideas" id="ideas"></div>
+      <button class="btn-go" id="hatchBtn">Hatch my egg</button>
+    </div>
+  </div>
+
+  <div class="sheetwrap dress" id="dressSheet" hidden>
+    <div class="sheet">
+      <div class="dress-head">
+        <div class="dress-title" id="dressTitle"></div>
+        <button class="done" data-close>Done</button>
+      </div>
+      <div class="hats" id="hats"></div>
+      <button class="reset" id="resetBtn"></button>
+    </div>
+  </div>
+
+  <div class="game" id="game" hidden>
+    <div class="game-head">
+      <button class="game-close ms" data-close aria-label="Close">close</button>
+      <div class="game-title">Fly Catch</div>
+      <div class="game-stats">
+        <div class="chip"><span class="ms">pest_control</span><span id="gameScore">0</span></div>
+        <div class="chip dark"><span id="gameLeft">20</span>s</div>
+      </div>
+    </div>
+    <div class="field" id="field">
+      <div class="card-wrap" id="gameReady">
+        <div class="card">
+          <h2>Catch the flies!</h2>
+          <p>Tap as many flies as you can before time runs out. <span class="js-name"></span> is hungry for fun.</p>
+          <button class="btn-go" id="startBtn">Start</button>
+        </div>
+      </div>
+      <div class="card-wrap" id="gameDone" hidden>
+        <div class="card done-card">
+          <div class="big" id="doneScore">0</div>
+          <div class="sub" id="doneText"></div>
+          <button class="btn-go" id="finishBtn">Back to <span class="js-name"></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheetwrap cele" id="celeSheet" hidden>
+    <div class="sheet">
+      <h2 id="celeTitle"></h2>
+      <p id="celeBody"></p>
+      <button class="btn-go" id="celeBtn">Yay!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Config ----------
+  const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
+  const RATES = { food: 8 / 3600, clean: 5 / 3600, fun: 7 / 3600, love: 6 / 3600 }; // points lost per second
+  const NEED = [
+    { k: 'food', label: 'Tummy', icon: 'pest_control', color: '#ea942f' },
+    { k: 'clean', label: 'Clean', icon: 'water_drop', color: '#37aae3' },
+    { k: 'fun', label: 'Fun', icon: 'toys', color: '#a780e6' },
+    { k: 'love', label: 'Love', icon: 'favorite', color: '#ef5f89' }
+  ];
+  const colorOf = k => NEED.find(n => n.k === k).color;
+  const HATS = [['none', 'None', '#E4E6DF'], ['crown', 'Crown', '#F5C542'], ['bow', 'Bow', '#FF7EB6'], ['party', 'Party hat', '#6F8CFF'], ['flower', 'Flower', '#FFC6DC']];
+  const STAGE_NAME = { egg: 'Egg', tadpole: 'Tadpole', froglet: 'Froglet', frog: 'Frog' };
+  const GAME_SECS = 20;
+
+  const $ = id => document.getElementById(id);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+
+  // ---------- State ----------
+  const base = () => ({ name: '', stage: 'egg', needs: { food: 72, clean: 80, fun: 58, love: 66 }, xp: 0, hat: 'none', last: Date.now() });
+  function load() {
+    const b = base(); let s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    s = Object.assign({}, b, s || {}); s.needs = Object.assign({}, b.needs, s.needs || {});
+    if (s.stage !== 'egg') {
+      const secs = Math.max(0, (Date.now() - (s.last || Date.now())) / 1000);
+      for (const k in s.needs) s.needs[k] = Math.max(8, s.needs[k] - RATES[k] * secs);
+    }
+    return Object.assign(s, { sheet: null, game: null, toast: null, busy: false, celebrate: null, drag: null, resetArm: false });
+  }
+  let S = load();
+  function save() {
+    const { name, stage, needs, xp, hat } = S;
+    try { localStorage.setItem(KEY, JSON.stringify({ name, stage, needs, xp, hat, last: Date.now() })); } catch (e) {}
+  }
+  function set(patch) { Object.assign(S, patch); render(); }
+
+  // ---------- 3D frog ----------
+  let engine = null;
+  function mountEngine() {
+    if (!window.FrogEngine || !window.THREE) { setTimeout(mountEngine, 60); return; }
+    engine = window.FrogEngine.mount($('scene'), {
+      stage: S.stage, onTap: () => pet(),
+      palette: { pad: 0x235a55, padTop: 0x2c6c64 },
+      lights: { sky: 0xa8c6ff, ground: 0x10262e, hemi: .6, key: 0xe6ecff, keyI: .9, rim: 0x8affd2, rimI: 1.4, fillI: .15 },
+      shadow: .35
+    });
+    syncEngine();
+  }
+  function syncEngine() {
+    if (!engine) return;
+    engine.setStage(S.stage); engine.setMood(mood()); engine.setHat(S.hat);
+    engine.setDirty(S.needs.clean < 40 ? (40 - S.needs.clean) / 40 : 0);
+  }
+  function mood() {
+    const v = Object.values(S.needs), min = Math.min(...v), avg = v.reduce((a, b) => a + b, 0) / v.length;
+    return min < 25 ? 'sad' : avg >= 68 ? 'happy' : 'ok';
+  }
+
+  // ---------- Needs drain ----------
+  let lastTick = 0;
+  function decay() {
+    const now = Date.now(), raw = (now - (lastTick || now)) / 1000; lastTick = now;
+    if (S.stage === 'egg' || S.sheet === 'game' || S.celebrate) return;
+    const dt = Math.min(raw, 43200), needs = Object.assign({}, S.needs);
+    for (const k in RATES) needs[k] = Math.max(5, needs[k] - RATES[k] * dt);
+    set({ needs }); save();
+  }
+
+  // ---------- Care actions ----------
+  let busyT, toastT, petN = 0;
+  function lock(ms) { set({ busy: true }); clearTimeout(busyT); busyT = setTimeout(() => set({ busy: false }), ms); }
+  function say(text, ms = 2600) { set({ toast: text }); clearTimeout(toastT); toastT = setTimeout(() => set({ toast: null }), ms); }
+  function give(k, amt, xp) {
+    S.needs = Object.assign({}, S.needs, { [k]: Math.min(100, S.needs[k] + amt) }); S.xp += xp;
+    save(); render(); checkGrow();
+  }
+  const canAct = () => !S.busy && S.stage !== 'egg' && !S.celebrate;
+  const nm = () => S.name || 'Pip';
+
+  function feed() {
+    if (!canAct()) return;
+    if (S.needs.food >= 95) { engine && engine.react('no'); say("I'm full! No more flies."); return; }
+    engine && engine.feed(); lock(1700);
+    setTimeout(() => { give('food', 30, 1); say(pick(['Yum! Crunchy fly!', 'Mmm, thank you!', 'Tasty! More please?'])); }, 1300);
+  }
+  function bath() {
+    if (!canAct()) return;
+    if (S.needs.clean >= 95) { engine && engine.react('no'); say("I'm already sparkly clean!"); return; }
+    engine && engine.bath(); lock(2300);
+    setTimeout(() => { give('clean', 45, 1); say('So bubbly! I feel shiny.'); }, 1400);
+  }
+  function pet() {
+    if (S.stage === 'egg') { engine && engine.react('no'); return; }
+    if (!canAct()) return;
+    petN++; const tickle = petN % 3 === 0;
+    engine && engine.react(tickle ? 'tickle' : 'pet');
+    addHearts(); give('love', 12, petN % 2 === 0 ? 1 : 0);
+    say(tickle ? 'Hee hee! That tickles!' : pick(['Aww, I love cuddles.', 'More pats please!', 'You are my best friend.']));
+    lock(tickle ? 800 : 650);
+  }
+  function play() { if (!canAct()) return; set({ sheet: 'game', game: { phase: 'ready', score: 0, left: GAME_SECS, flies: [] } }); }
+  function dress() { if (!canAct()) return; set({ sheet: 'dress', resetArm: false }); }
+  function closeSheet() { cancelAnimationFrame(gameRaf); set({ sheet: null, game: null }); }
+  const ACTIONS = [
+    { kind: 'feed', label: 'Feed', icon: 'pest_control', color: colorOf('food'), run: feed },
+    { kind: 'bath', label: 'Bath', icon: 'bathtub', color: colorOf('clean'), run: bath },
+    { kind: 'play', label: 'Play', icon: 'sports_esports', color: colorOf('fun'), run: play },
+    { kind: 'dress', label: 'Dress up', icon: 'checkroom', color: '#76cf8a', run: dress }
+  ];
+
+  function addHearts() {
+    const fx = $('fx');
+    for (let i = 0; i < 3; i++) {
+      const h = document.createElement('span');
+      h.textContent = '♥';
+      h.style.cssText = 'left:' + (40 + Math.random() * 20) + '%;top:' + (34 + Math.random() * 12) + '%;font-size:' + (22 + Math.random() * 16) + 'px;animation:fp-heart 1.3s ' + (i * 130) + 'ms ease-out both';
+      fx.appendChild(h);
+      setTimeout(() => h.remove(), 1700);
+    }
+  }
+
+  function checkGrow() {
+    let next = null;
+    if (S.stage === 'tadpole' && S.xp >= 8) next = 'froglet';
+    else if (S.stage === 'froglet' && S.xp >= 20) next = 'frog';
+    if (!next) return;
+    if (S.sheet === 'game') cancelAnimationFrame(gameRaf);
+    set({ stage: next, celebrate: { kind: 'grow', stage: next }, sheet: null, game: null }); save();
+    setTimeout(() => engine && engine.burst(), 400);
+  }
+  function hatch() {
+    const raw = ($('nameInput').value || '').trim() || 'Pip';
+    const name = (raw.charAt(0).toUpperCase() + raw.slice(1)).slice(0, 14);
+    $('nameInput').blur();
+    set({ name, stage: 'tadpole', celebrate: { kind: 'hatch' } }); save();
+    setTimeout(() => engine && engine.burst(), 350);
+  }
+  function resetTap() {
+    if (!S.resetArm) { set({ resetArm: true }); return; }
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    $('nameInput').value = '';
+    set(Object.assign(base(), { sheet: null, game: null, toast: null, celebrate: null, resetArm: false }));
+  }
+
+  // ---------- Fly Catch ----------
+  let gameRaf = 0, g0 = 0, gl = 0, flyId = 0;
+  function newFly() { const a = Math.random() * Math.PI * 2, sp = 18 + Math.random() * 22; return { id: ++flyId, x: 10 + Math.random() * 80, y: 12 + Math.random() * 70, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp }; }
+  function startGame() {
+    flyId = 0;
+    set({ game: { phase: 'run', score: 0, left: GAME_SECS, flies: [0, 1, 2, 3, 4].map(newFly) } });
+    g0 = gl = performance.now();
+    cancelAnimationFrame(gameRaf); gameRaf = requestAnimationFrame(gameTick);
+  }
+  function gameTick(now) {
+    const g = S.game; if (!g || g.phase !== 'run') return;
+    const dt = Math.min(.05, (now - gl) / 1000); gl = now;
+    const left = Math.max(0, GAME_SECS - (now - g0) / 1000);
+    if (left <= 0) { set({ game: Object.assign({}, g, { flies: [], left: 0, phase: 'done' }) }); return; }
+    g.flies.forEach(f => {
+      if (Math.random() < .03) { const a = Math.random() * Math.PI * 2, sp = 18 + Math.random() * 28; f.vx = Math.cos(a) * sp; f.vy = Math.sin(a) * sp; }
+      f.x += f.vx * dt; f.y += f.vy * dt;
+      if (f.x < 7) { f.x = 7; f.vx = Math.abs(f.vx); } if (f.x > 93) { f.x = 93; f.vx = -Math.abs(f.vx); }
+      if (f.y < 8) { f.y = 8; f.vy = Math.abs(f.vy); } if (f.y > 92) { f.y = 92; f.vy = -Math.abs(f.vy); }
+    });
+    g.left = left; render();
+    gameRaf = requestAnimationFrame(gameTick);
+  }
+  function catchFly(id) {
+    const g = S.game; if (!g || g.phase !== 'run') return;
+    g.score++; g.flies = g.flies.map(f => (f.id === id ? newFly() : f)); render();
+  }
+  function finishGame() {
+    const sc = (S.game && S.game.score) || 0;
+    closeSheet(); give('fun', Math.min(70, 20 + sc * 5), 2);
+    setTimeout(() => engine && engine.react('celebrate'), 150);
+    say(sc >= 8 ? sc + ' flies! You are amazing!' : 'That was fun! Play again soon?');
+  }
+
+  // ---------- Drag items onto the frog ----------
+  let dragInfo = null;
+  function local(e) { const r = $('app').getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function startDrag(kind, e) {
+    if (!canAct()) return;
+    e.preventDefault();
+    const p = local(e);
+    dragInfo = { kind, sx: e.clientX, sy: e.clientY, moved: false };
+    set({ drag: { kind, x: p.x, y: p.y, over: false, active: false } });
+    window.addEventListener('pointermove', onDragMove); window.addEventListener('pointerup', onDragUp); window.addEventListener('pointercancel', onDragCancel);
+  }
+  function onDragMove(e) {
+    const d = dragInfo; if (!d) return;
+    if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 8) d.moved = true;
+    const p = local(e), over = !!(engine && engine.hitTest(e.clientX, e.clientY));
+    set({ drag: { kind: d.kind, x: p.x, y: p.y, over, active: d.moved } });
+  }
+  function endDrag() {
+    window.removeEventListener('pointermove', onDragMove); window.removeEventListener('pointerup', onDragUp); window.removeEventListener('pointercancel', onDragCancel);
+    const d = dragInfo; dragInfo = null; set({ drag: null }); return d;
+  }
+  function onDragCancel() { endDrag(); }
+  function onDragUp(e) {
+    const d = endDrag(); if (!d) return;
+    const over = engine && engine.hitTest(e.clientX, e.clientY);
+    if (!d.moved || over) ACTIONS.find(a => a.kind === d.kind).run(); // a plain tap works too
+    else say('Drop it right on ' + nm() + '!', 1800);
+  }
+
+  // ---------- Build static bits ----------
+  (function build() {
+    $('fireflies').innerHTML = Array.from({ length: 12 }, () =>
+      '<span style="left:' + (Math.random() * 92 + 4) + '%;top:' + (Math.random() * 80 + 5) + '%;animation-duration:' + (3 + Math.random() * 4) + 's;animation-delay:' + (-Math.random() * 6) + 's"></span>').join('');
+
+    $('needs').innerHTML = NEED.map(n =>
+      '<div class="need"><div class="ring">' +
+      '<svg width="62" height="62" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"></circle>' +
+      '<circle class="arc" data-need="' + n.k + '" cx="28" cy="28" r="22" fill="none" stroke="' + n.color + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 200" style="filter:drop-shadow(0 0 4px ' + n.color + ')"></circle></svg>' +
+      '<span class="ms" style="color:' + n.color + '">' + n.icon + '</span></div>' +
+      '<div class="need-label">' + n.label + '</div></div>').join('');
+
+    ACTIONS.forEach(a => {
+      const t = document.createElement('div');
+      t.className = 'tile'; t.setAttribute('role', 'button'); t.setAttribute('aria-label', a.label);
+      t.innerHTML = '<span class="ms" style="background:' + a.color + ';box-shadow:0 0 22px -4px ' + a.color + ',inset 0 -4px 0 rgba(0,0,0,.15)">' + a.icon + '</span><span class="tile-label">' + a.label + '</span>';
+      t.addEventListener('pointerdown', e => startDrag(a.kind, e));
+      $('tray').appendChild(t);
+    });
+
+    ['Pip', 'Lily', 'Mossy', 'Jumpy', 'Bubbles'].forEach(n => {
+      const b = document.createElement('button'); b.textContent = n;
+      b.addEventListener('click', () => { $('nameInput').value = n; });
+      $('ideas').appendChild(b);
+    });
+
+    HATS.forEach(([k, label, dot]) => {
+      const b = document.createElement('button'); b.dataset.hat = k;
+      b.innerHTML = '<span class="dot" style="background:' + dot + '"></span><span class="lbl">' + label + '</span>';
+      b.addEventListener('click', () => { set({ hat: k }); save(); if (k !== 'none') say(pick(['Do I look fancy?', 'I love it!', 'So stylish!'])); });
+      $('hats').appendChild(b);
+    });
+
+    $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') hatch(); });
+    $('hatchBtn').addEventListener('click', hatch);
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheet));
+    $('resetBtn').addEventListener('click', resetTap);
+    $('startBtn').addEventListener('click', startGame);
+    $('finishBtn').addEventListener('click', finishGame);
+    $('celeBtn').addEventListener('click', () => set({ celebrate: null }));
+    $('field').addEventListener('pointerdown', e => {
+      const f = e.target.closest('.fly'); if (f) { e.preventDefault(); catchFly(+f.dataset.id); }
+    });
+  })();
+
+  // ---------- Render ----------
+  const show = (id, on) => { const el = $(id); if (el.hidden === on) el.hidden = !on; };
+  const text = (el, t) => { if (el.textContent !== t) el.textContent = t; };
+  const flyEls = new Map();
+
+  function render() {
+    const hatched = S.stage !== 'egg', name = nm();
+    const needs = NEED.map(n => ({ k: n.k, v: Math.round(S.needs[n.k]) }));
+    const low = needs.slice().sort((a, b) => a.v - b.v)[0], m = mood();
+
+    show('head', hatched); show('dock', hatched); show('speech', hatched); show('eggSheet', !hatched);
+    if (hatched) {
+      text($('name'), name);
+      text($('stageName'), STAGE_NAME[S.stage]);
+      let gp = 1, gLabel = 'All grown up!';
+      if (S.stage === 'tadpole') { gp = S.xp / 8; gLabel = Math.max(1, Math.ceil(8 - S.xp)) + ' more care to grow legs'; }
+      if (S.stage === 'froglet') { gp = (S.xp - 8) / 12; gLabel = Math.max(1, Math.ceil(20 - S.xp)) + ' more care to be a frog'; }
+      $('growFill').style.width = Math.round(Math.min(1, Math.max(0, gp)) * 100) + '%';
+      text($('growLabel'), gLabel);
+      needs.forEach(n => $('needs').querySelector('[data-need="' + n.k + '"]').setAttribute('stroke-dasharray', (n.v / 100 * 138.2).toFixed(1) + ' 200'));
+
+      const sadLines = { food: 'My tummy is rumbly…', clean: "I'm all muddy!", fun: "I'm sooo bored.", love: 'I miss you. Cuddle?' };
+      const okLines = { food: 'Got any flies?', clean: 'Bath time, maybe?', fun: 'Wanna play?', love: 'Pat my head!' };
+      text($('speech'), S.toast || (m === 'sad' ? sadLines[low.k] : m === 'happy' ? 'Ribbit! I love you, friend!' : okLines[low.k]));
+      text($('dockHint'), 'Drag a thing onto ' + name + ', or tap ' + name + ' to cuddle');
+      $('tray').style.opacity = S.busy ? .55 : 1;
+    }
+
+    // drag ghost + drop glow
+    const dr = S.drag, active = !!(dr && dr.active);
+    show('ghost', active); show('glow', active && dr.over);
+    if (active) {
+      const a = ACTIONS.find(x => x.kind === dr.kind), gh = $('ghost');
+      text(gh, a.icon); gh.style.background = a.color;
+      gh.style.left = dr.x + 'px'; gh.style.top = dr.y + 'px';
+      gh.style.transform = 'translate(-50%,-60%) scale(' + (dr.over ? 1.2 : 1) + ')';
+    }
+
+    // dress-up sheet
+    show('dressSheet', S.sheet === 'dress');
+    if (S.sheet === 'dress') {
+      text($('dressTitle'), 'Dress up ' + name);
+      $('hats').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hat === S.hat)));
+      text($('resetBtn'), S.resetArm ? 'Tap again to start over with a new egg' : 'Start over');
+    }
+
+    // Fly Catch
+    show('game', S.sheet === 'game');
+    if (S.sheet === 'game') {
+      const g = S.game || { score: 0, left: GAME_SECS, phase: 'ready', flies: [] };
+      document.querySelectorAll('.js-name').forEach(el => text(el, name));
+      text($('gameScore'), String(g.score)); text($('gameLeft'), String(Math.ceil(g.left)));
+      show('gameReady', g.phase === 'ready'); show('gameDone', g.phase === 'done');
+      if (g.phase === 'done') {
+        text($('doneScore'), String(g.score));
+        text($('doneText'), g.score >= 8 ? 'Super catcher!' : g.score >= 1 ? 'Flies caught!' : 'Those flies were fast!');
+      }
+      const live = new Set();
+      g.flies.forEach(f => {
+        live.add(f.id);
+        let el = flyEls.get(f.id);
+        if (!el) {
+          el = document.createElement('div'); el.className = 'fly'; el.dataset.id = f.id;
+          el.innerHTML = '<span class="w1"></span><span class="w2"></span><span class="b"></span>';
+          $('field').insertBefore(el, $('gameReady')); flyEls.set(f.id, el);
+        }
+        el.style.left = f.x + '%'; el.style.top = f.y + '%';
+      });
+      flyEls.forEach((el, id) => { if (!live.has(id)) { el.remove(); flyEls.delete(id); } });
+    } else if (flyEls.size) { flyEls.forEach(el => el.remove()); flyEls.clear(); }
+
+    // celebration
+    const cel = S.celebrate;
+    show('celeSheet', !!cel);
+    if (cel) {
+      text($('celeTitle'), cel.kind === 'hatch' ? 'Say hi to ' + name + '!' : cel.stage === 'froglet' ? name + ' is a froglet now!' : name + ' is a real frog!');
+      text($('celeBody'), cel.kind === 'hatch' ? 'Your egg hatched into a tiny tadpole. Feed, bathe and cuddle it to help it grow.'
+        : cel.stage === 'froglet' ? 'Look, little legs! Keep caring and ' + name + ' will grow into a frog.' : 'All grown up. Try on a hat in Dress up!');
+    }
+
+    syncEngine();
+  }
+
+  // ---------- Go ----------
+  const iconsOk = () => document.documentElement.classList.add('icons-ok');
+  if (document.fonts && document.fonts.load) document.fonts.load("24px 'Material Symbols Rounded'", 'eco').then(f => { if (f.length) iconsOk(); }, () => {});
+  else iconsOk();
+  render();
+  mountEngine();
+  setInterval(decay, 1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') decay(); else save(); });
+
+  try {
+    if ('serviceWorker' in navigator && window.top === window && /^https?:/.test(location.protocol))
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
