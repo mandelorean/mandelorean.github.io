@@ -639,9 +639,17 @@
       }
       // friends
       if (k === 'goldfish') {
-        const o = mat(0xff8a2a, { clearcoat: 1, roughness: .2 });
-        g.add(sph(.13, o, 1.6, .9, .7)); const tail = new T.Mesh(new T.ConeGeometry(.1, .18, 12), o); tail.rotation.z = Math.PI / 2; tail.position.x = -.25; g.add(tail);
+        const o = mat(0xff8a2a, { clearcoat: 1, roughness: .2, transparent: true });
+        g.add(sph(.13, o, 1.6, .9, .7));
+        // tail: a flat fan, narrow where it joins the body and wide at the end, on a pivot so it can wag
+        const wag = new T.Group(); wag.position.x = -.19; g.add(wag);
+        const tail = new T.Mesh(new T.ConeGeometry(.12, .2, 16), o); tail.rotation.z = -Math.PI / 2; tail.scale.set(1, 1, .25); tail.position.x = -.1; wag.add(tail);
+        const fin = new T.Mesh(new T.ConeGeometry(.05, .1, 10), o); fin.scale.set(1, 1, .25); fin.position.set(-.02, .12, 0); fin.rotation.z = .5; g.add(fin);
         g.add(sph(.03, P, 1, 1, 1, .14, .04, .07), sph(.03, P, 1, 1, 1, .14, .04, -.07));
+        // a ripple on the surface above, so you can see where it's swimming
+        const rip = new T.Mesh(new T.RingGeometry(.16, .2, 32), new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .25, depthWrite: false }));
+        rip.rotation.x = -Math.PI / 2; scene.add(rip);
+        g.userData = { wag, o, rip };
       }
       if (k === 'duckling') {
         const y = mat(0xffd84d, { roughness: .6, clearcoat: .2 });
@@ -774,10 +782,17 @@
       if (x.house.visible) x.house.userData.win.emissiveIntensity = sleeping ? 1.4 : .2 + cur.night * .6;
       holder.visible = !(x.house.visible && sleeping && stage !== 'egg');
       if (x.clock.visible) { const d = new Date(), h = d.getHours() % 12 + d.getMinutes() / 60, m = d.getMinutes(); x.clock.userData.hh.rotation.z = -h / 12 * Math.PI * 2; x.clock.userData.mh.rotation.z = -m / 60 * Math.PI * 2; }
-      if (x.goldfish.visible) {
-        const a = t * .35, jump = Math.max(0, Math.sin(t * .9)) ** 12;
-        x.goldfish.position.set(Math.cos(a) * 2.45, -.06 + jump * .7, Math.sin(a) * 2.45); x.goldfish.rotation.set(0, -a - Math.PI / 2, (Math.cos(t * .9) > 0 ? -1 : 1) * jump * .8);
-      }
+      { const gf = x.goldfish, u = gf.userData; u.rip.visible = gf.visible;
+        if (gf.visible) {
+          // swims below the surface (faded, as if seen through the water) and now and then leaps out
+          const a = t * .35, jump = Math.max(0, Math.sin(t * .9)) ** 12, px = Math.cos(a) * 2.45, pz = Math.sin(a) * 2.45, y = -.17 + jump * .9;
+          gf.position.set(px, y, pz); gf.rotation.set(0, -a - Math.PI / 2, (Math.cos(t * .9) > 0 ? -1 : 1) * jump * .8);
+          u.wag.rotation.y = Math.sin(t * 7) * .45;
+          const under = Math.min(1, Math.max(0, -(y - .02) / .12));
+          u.o.opacity = 1 - under * .4; u.o.color.setHex(under > .5 ? 0xd9804a : 0xff8a2a);
+          u.rip.position.set(px, .005, pz); const s = 1 + Math.sin(t * 2.2) * .15 + jump * 1.5; u.rip.scale.set(s, s, s);
+          u.rip.material.opacity = .14 + jump * .3;
+        } }
       if (x.duckling.visible) { const a = -t * .18 + 1; x.duckling.position.set(Math.cos(a) * 2.7, -.06 + Math.sin(t * 3) * .02, Math.sin(a) * 2.7); x.duckling.rotation.y = -a; }
       if (x.butterfly.visible) {
         const b = x.butterfly; b.position.set(Math.sin(t * .4) * 1.6 + Math.sin(t * 1.7) * .2, 1.7 + Math.sin(t * .9) * .4, Math.cos(t * .4) * 1.2);
