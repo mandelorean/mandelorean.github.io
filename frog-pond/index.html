@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-JVYYPFT8VC"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JVYYPFT8VC');
+</script>
+<title>Frog Pond</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#11282F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Frog Pond">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-512.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0..1,0&display=block">
+<link rel="stylesheet" href="./app.css">
+<script src="./three.min.js"></script>
+<script src="./frog-engine.js"></script>
+<script src="./sound.js"></script>
+<script src="./learn.js"></script>
+</head>
+<body>
+<div id="app">
+  <div class="pond" id="pond">
+    <div class="backdrop" aria-hidden="true">
+      <div class="bd-sky"><div class="bd-stars" id="stars"></div></div>
+      <div class="sky-orb" id="orb"></div>
+      <div class="bd-clouds" id="clouds"></div>
+      <div class="scene-fx" id="sceneFx"></div>
+      <svg class="bd-trees" id="trees" viewBox="0 -6 400 46" preserveAspectRatio="none"></svg>
+      <div class="bd-water"><div class="bd-shine"></div><div class="bd-ripples" id="ripples"></div></div>
+      <div class="bd-pad p1"></div><div class="bd-pad p2"></div><div class="bd-pad p3"><i></i></div><div class="bd-pad p4"></div>
+      <svg class="bd-reeds l" id="reedsL" viewBox="0 0 90 120" preserveAspectRatio="xMinYMax meet"></svg>
+      <svg class="bd-reeds r" id="reedsR" viewBox="0 0 90 120" preserveAspectRatio="xMaxYMax meet"></svg>
+      <div class="bd-mist"></div>
+      <div class="bd-snow"></div>
+      <div class="bd-flash"></div>
+    </div>
+    <div class="fireflies" id="fireflies"></div>
+    <div class="rain" id="rain" hidden></div>
+    <div class="night" id="night" hidden></div>
+    <header class="head" id="head" hidden>
+      <div class="head-row">
+        <div class="name" id="name"></div>
+        <div class="hbtns">
+          <button class="coins" id="coinsBtn" aria-label="Lily coins"><span class="coin ms">eco</span><span id="coins">0</span></button>
+          <button class="ibtn ms" id="bookBtn" aria-label="Sticker book">auto_awesome</button>
+          <button class="ibtn ms" id="photoBtn" aria-label="Take a photo">photo_camera</button>
+          <button class="ibtn ms" id="soundBtn" aria-label="Sound on or off">volume_up</button>
+        </div>
+      </div>
+      <div class="grow">
+        <div class="grow-track"><div class="grow-fill" id="growFill"></div></div>
+        <div class="grow-label"><span class="ms">eco</span><span id="growLabel"></span></div>
+      </div>
+      <div class="needs" id="needs"></div>
+    </header>
+    <div class="stagebox">
+      <div class="glow" id="glow" hidden></div>
+      <div id="scene"></div>
+      <button class="wx" id="wx" hidden aria-label="Weather in Fleet"><span class="ms" id="wxIcon"></span><span id="wxTemp"></span></button>
+      <button class="jobs" id="jobsBtn" hidden><span class="ms">checklist</span><span id="jobsCount"></span></button>
+      <div class="popq" id="popq" hidden>
+        <div class="popq-card">
+          <div class="popq-lbl" id="popqLbl"></div>
+          <div class="popq-q" id="popqQ"></div>
+          <button class="say sm" id="popqSay" hidden><span class="ms">volume_up</span>Hear it</button>
+          <div class="popq-ch" id="popqCh"></div>
+          <button class="link" id="popqNo">Not now</button>
+        </div>
+      </div>
+      <div class="zzz" id="zzz" hidden><span>z</span><span style="animation-delay:1.2s;font-size:24px">z</span><span style="animation-delay:2.4s;font-size:36px">Z</span></div>
+      <div class="loo" id="looSign" hidden><span class="ms">wc</span><b>Back soon!</b></div>
+      <div class="speech" id="speech" hidden aria-live="polite"></div>
+    </div>
+    <div class="dockwrap" id="dock" hidden>
+      <div class="dock">
+        <div class="dock-hint" id="dockHint"></div>
+        <div class="tray" id="tray"></div>
+        <div class="sleepbar" id="sleepBar" hidden>
+          <div id="sleepText"></div>
+          <button class="wake" id="wakeBtn"><span class="ms">wb_sunny</span>Wake up</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fx" id="fx"></div>
+  <div class="ghost ms" id="ghost" hidden></div>
+  <div id="toastHost"></div>
+  <div class="count" id="count" hidden></div>
+
+  <div class="sheetwrap egg" id="eggSheet" hidden>
+    <div class="sheet">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h1>You found a frog egg!</h1>
+        <p>What should we call your frog?</p>
+      </div>
+      <input id="nameInput" maxlength="14" placeholder="Type a name" autocomplete="off" autocapitalize="words" enterkeyhint="go">
+      <div class="ideas" id="ideas"></div>
+      <button class="btn-go" id="hatchBtn">Hatch my egg</button>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="shopSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Shop</div>
+        <div class="wallet"><span class="coin ms">eco</span><span id="wallet"></span></div>
+        <button class="done" data-close>Done</button>
+      </div>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div class="items" id="items"></div>
+      <button class="link" data-grownups><span class="ms">lock</span>For grown-ups</button>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="bookSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Sticker book</div>
+        <button class="done" data-close>Done</button>
+      </div>
+      <div class="streak"><span class="ms">local_fire_department</span><div><b id="streakText"></b><span id="streakSub"></span></div></div>
+      <div class="stickers" id="stickers"></div>
+      <button class="link" data-grownups><span class="ms">lock</span>For grown-ups</button>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="jobsSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Today’s jobs</div>
+        <button class="done" data-close>Done</button>
+      </div>
+      <div class="joblist" id="jobList"></div>
+      <div class="picker-note" id="jobsNote"></div>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="pickSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="pickTitle"></div>
+        <button class="done" data-close>Close</button>
+      </div>
+      <div class="sec">Play</div>
+      <div class="games" id="gamesPlay"></div>
+      <div class="sec">Maths</div>
+      <div class="games" id="gamesMaths"></div>
+      <div class="sec">Words and time</div>
+      <div class="games" id="gamesWords"></div>
+      <div class="picker-note">Learning games win the most lily coins. Look for <span class="bonus x3">×3</span> on the ones you’ve practised least!</div>
+    </div>
+  </div>
+
+  <div class="sheetwrap panel" id="photoSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">Lovely photo!</div>
+      </div>
+      <img class="photo-img" id="photoImg" alt="Photo of your frog">
+      <div class="row2">
+        <button class="ghostbtn" data-close>Close</button>
+        <button class="btn-go" id="savePhoto">Save photo</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="game" id="game" hidden>
+    <div class="game-head">
+      <button class="game-close ms" id="gameClose" aria-label="Close">close</button>
+      <div class="game-title" id="gameTitle"></div>
+      <div class="game-stats">
+        <div class="chip" id="scoreChip"><span class="ms" id="scoreIcon"></span><span id="gameScore">0</span></div>
+        <div class="chip dark" id="timeChip"><span id="gameLeft"></span></div>
+      </div>
+    </div>
+    <div class="field" id="field">
+      <div class="layer" id="flyLayer"></div>
+      <div class="layer swim" id="swimLayer" hidden>
+        <div class="lane" style="left:33.33%"></div><div class="lane" style="left:66.66%"></div>
+        <div class="hearts" id="hearts"></div>
+        <div class="swim-hint">Tap left or right to swim</div>
+        <div class="swimmer" id="swimmer"><span class="lg l1"></span><span class="lg l2"></span><span class="bd"></span><span class="e e1"></span><span class="e e2"></span></div>
+      </div>
+      <div class="layer tt" id="qPick" hidden>
+        <h2 id="qPickTitle"></h2>
+        <div class="tgrid" id="tgrid"></div>
+        <div class="opts" id="qOpts"></div>
+        <button class="clock" id="clockBtn"><span class="ms">timer</span><span><b>Beat the clock</b><br>6 seconds a question, like the Year 4 check</span></button>
+      </div>
+      <div class="layer tt" id="qRun" hidden>
+        <div class="progress" id="qProg"></div>
+        <div class="tbar" id="qBarWrap"><div id="qBar"></div></div>
+        <div class="q" id="qText"></div>
+        <div id="qClockWrap" hidden><svg class="qclock" id="qClock" viewBox="0 0 200 200"></svg></div>
+        <button class="say" id="qSay" hidden><span class="ms">volume_up</span>Hear it</button>
+        <div class="qhint" id="qHint" hidden></div>
+        <div class="ans" id="qAns"></div>
+        <div class="choices" id="qChoices"></div>
+        <div class="fb" id="qFb"></div>
+        <div class="keys" id="keys"></div>
+      </div>
+      <div class="layer mem" id="memLayer" hidden></div>
+      <div class="card-wrap" id="gameReady" hidden>
+        <div class="card">
+          <h2 id="readyTitle"></h2>
+          <p id="readyText"></p>
+          <button class="btn-go" id="startBtn">Start</button>
+        </div>
+      </div>
+      <div class="card-wrap" id="gameDone" hidden>
+        <div class="card done-card">
+          <div class="big" id="doneBig"></div>
+          <div class="stars" id="doneStars" hidden></div>
+          <div class="sub" id="doneText"></div>
+          <div class="extra" id="doneExtra" hidden></div>
+          <div class="earned" id="doneCoins"></div>
+          <button class="btn-go" id="finishBtn">Back to <span class="js-name"></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheetwrap cele" id="celeSheet" hidden>
+    <div class="sheet">
+      <h2 id="celeTitle"></h2>
+      <p id="celeBody"></p>
+      <button class="btn-go" id="celeBtn">Yay!</button>
+    </div>
+  </div>
+
+  <div class="gate" id="gate" hidden>
+    <div class="card">
+      <h2>For grown-ups</h2>
+      <p>Press and hold the button for 3 seconds.</p>
+      <button class="hold" id="holdBtn"><i id="holdFill"></i><span>Hold to open</span></button>
+      <button class="link" id="gateCancel">Cancel</button>
+    </div>
+  </div>
+
+  <div class="parent" id="parent" hidden>
+    <div class="parent-in" id="parentBody"></div>
+  </div>
+</div>
+<script src="./app.js"></script>
+</body>
+</html>
