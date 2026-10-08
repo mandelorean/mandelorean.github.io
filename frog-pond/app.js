@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-08.3'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-08.4'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -759,6 +759,29 @@
     sfx('fanfare'); setTimeout(() => engine && engine.burst(), 350);
     checkDay();
   }
+  // ---------- Renaming: a secret long press on the name at the top ----------
+  let nameHold = null;
+  function nameHoldStart(e) {
+    if (S.stage === 'egg' || S.sheet || S.game) return;
+    $('name').classList.add('pressing');
+    nameHold = setTimeout(() => {
+      nameHold = null; $('name').classList.remove('pressing');
+      try { navigator.vibrate && navigator.vibrate(25); } catch (err) {}
+      sfx('pop'); $('renameInput').value = nm(); text($('renameText'), 'What should ' + nm() + ' be called now?');
+      set({ sheet: 'rename' }); setTimeout(() => { $('renameInput').focus(); $('renameInput').select(); }, 50);
+    }, 1200);
+  }
+  function nameHoldEnd() { if (nameHold) { clearTimeout(nameHold); nameHold = null; } $('name').classList.remove('pressing'); }
+  function rename() {
+    lastInteract = Date.now();
+    const raw = ($('renameInput').value || '').trim().replace(/\s+/g, ' ');
+    $('renameInput').blur();
+    if (!raw || raw === nm()) { closeSheet(); return; }
+    const name = (raw.charAt(0).toUpperCase() + raw.slice(1)).slice(0, 14);
+    set({ name, sheet: null }); save();
+    sfx('giggle'); engine && engine.react('tickle');
+    say(pick(['I’m ' + name + ' now! I love it!', name + '! What a brilliant name!', 'Ooh, ' + name + '. That’s me!']), 3200);
+  }
   function resetAll() {
     try { localStorage.removeItem(KEY); } catch (e) {}
     $('nameInput').value = '';
@@ -1284,6 +1307,11 @@
       $('tray').appendChild(t);
     });
 
+    ['Pip', 'Lily', 'Mossy', 'Jumpy', 'Bubbles', 'Puddle', 'Sprout', 'Sir Hops'].forEach(n => {
+      const b = document.createElement('button'); b.textContent = n;
+      b.addEventListener('click', () => { $('renameInput').value = n; });
+      $('renameIdeas').appendChild(b);
+    });
     ['Pip', 'Lily', 'Mossy', 'Jumpy', 'Bubbles'].forEach(n => {
       const b = document.createElement('button'); b.textContent = n;
       b.addEventListener('click', () => { $('nameInput').value = n; });
@@ -1335,6 +1363,11 @@
 
     $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') hatch(); });
     $('hatchBtn').addEventListener('click', hatch);
+    $('renameBtn').addEventListener('click', rename);
+    $('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') rename(); });
+    $('name').addEventListener('pointerdown', nameHoldStart);
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('name').addEventListener(ev, nameHoldEnd));
+    $('name').addEventListener('contextmenu', e => e.preventDefault());
     document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheet));
     document.querySelectorAll('[data-grownups]').forEach(b => b.addEventListener('click', () => set({ gate: true, sheet: null })));
     $('gateCancel').addEventListener('click', () => { holdEnd(); set({ gate: false }); });
@@ -1470,6 +1503,7 @@
       gh.style.transform = 'translate(-50%,-60%) scale(' + (dr.over ? 1.2 : 1) + ')';
     }
 
+    show('renameSheet', S.sheet === 'rename');
     show('shopSheet', S.sheet === 'shop'); if (S.sheet === 'shop') renderShop();
     show('bookSheet', S.sheet === 'book'); if (S.sheet === 'book') renderBook();
     show('jobsSheet', S.sheet === 'jobs'); if (S.sheet === 'jobs') renderJobs();

@@ -115,6 +115,21 @@
     </div>
   </div>
 
+  <div class="sheetwrap egg" id="renameSheet" hidden>
+    <div class="sheet">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h1>A new name?</h1>
+        <p id="renameText"></p>
+      </div>
+      <input id="renameInput" maxlength="14" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-label="New name">
+      <div class="ideas" id="renameIdeas"></div>
+      <div class="row2">
+        <button class="ghostbtn" data-close>Keep it</button>
+        <button class="btn-go" id="renameBtn">Rename</button>
+      </div>
+    </div>
+  </div>
+
   <div class="sheetwrap panel" id="shopSheet" hidden>
     <div class="sheet">
       <div class="sheet-head">
