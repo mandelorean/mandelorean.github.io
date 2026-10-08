@@ -35,7 +35,7 @@ html:not(.icons-ok) .ms{font-size:0!important} /* never show ligature names like
 .sky-dusk .sky-orb.sun,.sky-dawn .sky-orb.sun{top:calc(var(--horizon) - 8%);background:radial-gradient(circle,#FFE0B0 0%,#FF9F5A 60%,rgba(255,159,90,0) 72%);box-shadow:0 0 70px 26px rgba(255,150,90,.3)}
 .sky-orb.moon{width:42px;height:42px;background:transparent;box-shadow:10px -6px 0 0 #E6EEFF;filter:drop-shadow(0 0 10px rgba(200,220,255,.6))}
 .bd-clouds{position:absolute;left:0;right:0;top:0;height:var(--horizon);display:none}
-.bd-clouds span{position:absolute;left:0;width:var(--w,120px);height:calc(var(--w,120px) * .3);border-radius:99px;background:rgba(255,255,255,.85);animation:fp-cloud linear infinite;filter:blur(1px)}
+.bd-clouds span{position:absolute;left:0;animation-duration:calc(var(--cd,120s) * var(--wspd,1));width:var(--w,120px);height:calc(var(--w,120px) * .3);border-radius:99px;background:rgba(255,255,255,.85);animation:fp-cloud linear infinite;filter:blur(1px)}
 .bd-clouds span::before,.bd-clouds span::after{content:'';position:absolute;border-radius:50%;background:inherit}
 .bd-clouds span::before{width:45%;height:150%;left:15%;bottom:20%}
 .bd-clouds span::after{width:35%;height:120%;left:48%;bottom:25%}
@@ -495,3 +495,42 @@ small.stars3 i{font-style:normal;color:#D8DCD5}
 .games .gt{flex:1}
 .card .earned .bonus{margin-left:4px}
 .tgrid-p .pc{display:block;font-size:11px;color:#8A938C;font-weight:700}
+
+/* ---------- wind: from the real wind speed where the frog is ---------- */
+.wind-1{--wspd:.55}.wind-2{--wspd:.3}.wind-3{--wspd:.18}
+/* a few clouds scud across even on a clear windy day */
+.wind-2.w-clear .bd-clouds,.wind-3.w-clear .bd-clouds{display:block}
+.wind-2.w-clear .bd-clouds span:nth-child(n+4),.wind-3.w-clear .bd-clouds span:nth-child(n+4){display:none}
+/* reeds and flowers bend with the wind (not rocks, ice or cacti) */
+@keyframes fp-bend{0%,100%{transform:skewX(calc(var(--bend) * -.15))}40%{transform:skewX(calc(var(--bend) * -1))}70%{transform:skewX(calc(var(--bend) * -.55))}}
+@keyframes fp-bend-r{0%,100%{transform:skewX(calc(var(--bend) * .15))}40%{transform:skewX(var(--bend))}70%{transform:skewX(calc(var(--bend) * .55))}}
+.bd-reeds .sway{transform-box:view-box;transform-origin:50% 100%}
+.wind-1{--bend:7deg}.wind-2{--bend:14deg}.wind-3{--bend:22deg}
+.pond:not(.wind-0):not(.scene-seaside):not(.scene-arctic):not(.scene-desert) .bd-reeds.l .sway{animation:fp-bend 2.6s ease-in-out infinite}
+.pond:not(.wind-0):not(.scene-seaside):not(.scene-arctic):not(.scene-desert) .bd-reeds.r .sway{animation:fp-bend-r 2.6s ease-in-out infinite}
+.wind-3 .bd-reeds .sway{animation-duration:1.4s!important}
+/* choppier water */
+.wind-1 .bd-shine{animation-duration:3s}.wind-2 .bd-shine{animation-duration:1.6s}.wind-3 .bd-shine{animation-duration:1s}
+.wind-2 .bd-ripples span,.wind-3 .bd-ripples span{display:block;animation-duration:2s;border-color:rgba(255,255,255,.5);width:90px;height:12px;margin:-6px 0 0 -45px}
+.wind-2 .bd-ripples span:nth-child(n+10){display:none}
+/* rain and snow driven sideways */
+@keyframes fp-rain-w{from{background-position:0 0}to{background-position:-240px 240px}}
+.wind-2 .rain,.wind-3 .rain{background-image:repeating-linear-gradient(120deg,rgba(220,235,255,0) 0 22px,rgba(220,235,255,.28) 22px 23px,rgba(220,235,255,0) 23px 46px);animation-name:fp-rain-w}
+@keyframes fp-snow-w{from{background-position:0 0,31px 17px,13px 41px}to{background-position:-194px 339px,-152px 213px,-159px 200px}}
+.wind-2 .bd-snow,.wind-3 .bd-snow{animation-name:fp-snow-w}
+/* leaves (or snow puffs, or sand) blowing past, and whooshy gust lines */
+@keyframes fp-gust{0%{transform:translate(-8vw,0) rotate(var(--r));opacity:0}10%{opacity:1}35%{transform:translate(30vw,-22px) rotate(calc(var(--r) + 200deg))}65%{transform:translate(65vw,14px) rotate(calc(var(--r) + 420deg))}90%{opacity:1}100%{transform:translate(112vw,-10px) rotate(calc(var(--r) + 640deg));opacity:0}}
+@keyframes fp-whoosh{0%{transform:translateX(-30vw) scaleX(.4);opacity:0}30%{opacity:.7}100%{transform:translateX(120vw) scaleX(1.2);opacity:0}}
+.gusts{position:absolute;inset:0;pointer-events:none;overflow:hidden;display:none;z-index:1}
+.wind-1 .gusts,.wind-2 .gusts,.wind-3 .gusts{display:block}
+.pond.fantasy .gusts{display:none!important}
+.gusts i{position:absolute;left:0;width:13px;height:7px;border-radius:0 80% 0 80%;background:#7fae3a;animation:fp-gust 4s linear infinite;opacity:0}
+.gusts i:nth-child(4n+1){background:#d98a2b}.gusts i:nth-child(4n+3){background:#b5462a}
+.gusts b{position:absolute;left:0;width:90px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:fp-whoosh 3s ease-in infinite;opacity:0}
+.wind-1 .gusts>:nth-child(n+5){display:none}
+.wind-2 .gusts>:nth-child(n+9){display:none}
+.wind-2 .gusts>*{animation-duration:2.6s!important}.wind-3 .gusts>*{animation-duration:1.8s!important}
+.scene-arctic .gusts i{background:#f4fbff;border-radius:50%;width:9px;height:9px}
+.scene-desert .gusts i{background:#e3c27a;border-radius:50%;width:5px;height:5px}
+.scene-seaside .gusts i{background:#f4fbff;border-radius:50%;width:6px;height:6px;opacity:.8}
+.wx .ms.wind{color:#CFE8FF;font-size:20px;margin-left:-2px}

@@ -770,6 +770,9 @@
     const tmpV = new T.Vector3();
     function moreTick() {
       const x = extras;
+      // wind: the hat wobbles, and now and then a gust lifts it right up
+      { const w = Math.max(0, Math.min(1, (wind - 15) / 40)), gust = Math.max(0, Math.sin(t * .6)) ** 16;
+        hatWrap.rotation.z = w ? Math.sin(t * 6.3) * .06 * w + gust * .5 * w : 0; hatWrap.position.y = w ? gust * .18 * w : 0; }
       if (x.kite.visible) {
         const k = x.kite.userData.kite, sway = .15 + Math.min(1, wind / 30) * .5;
         if (busyToy !== 'kite') { k.position.set(-1.9 + Math.sin(t * .7) * sway, 3.4 + Math.sin(t * 1.1) * sway * .6, -2.2); k.rotation.z = Math.sin(t * 1.3) * sway * .6; }

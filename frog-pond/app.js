@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-08.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-08.2'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -156,6 +156,10 @@
       : (c >= 61 && c <= 67) || (c >= 80 && c <= 82) ? 'rain' : (c >= 71 && c <= 77) || c === 85 || c === 86 ? 'snow' : c >= 95 ? 'storm' : 'cloudy';
   }
   const isRainy = () => !FANTASY[S.scene] && ['rain', 'drizzle', 'storm'].includes(wxKind());
+  // wind: 0 calm, 1 breezy, 2 windy, 3 blowing a gale (km/h from Open-Meteo). Made-up places are always calm.
+  const windKmh = () => (FANTASY[S.scene] || !wxFresh() ? 0 : +wx().wind || 0);
+  const windLevel = () => { const w = windKmh(); return w >= 50 ? 3 : w >= 35 ? 2 : w >= 20 ? 1 : 0; };
+  const mph = () => Math.round(windKmh() * .621);
   // made-up places have their own sky; real places use their own weather and clock
   const FANTASY = { space: 'night', disco: 'night', spooky: 'night', underwater: 'day', candy: 'day' };
   const scenePhase = () => FANTASY[S.scene] || skyPhase();
@@ -215,7 +219,9 @@
       if (polar && !night && (h >= 22 || h < 5)) return "It's " + localTimeWords() + ' in ' + where + ' and the sun is still up! It never sets there in summer.';
       return "It's " + localTimeWords() + ' in ' + where + ' right now!' + (night ? ' Shh, everyone is asleep.' : '');
     }
-    const temp = ' It\'s ' + t + '°C in ' + where + '.';
+    const temp = ' It\'s ' + t + '°C in ' + where + '.', wl = windLevel();
+    if (wl >= 2 && k !== 'storm' && Math.random() < .6) return (wl === 3 ? 'It\'s blowing a gale in ' : 'Whoosh! It\'s really windy in ') + where + '! The wind is ' + mph() + ' miles an hour. Hold on to your hat!';
+    if (wl === 1 && Math.random() < .3) return 'Ooh, it\'s breezy in ' + where + ' today.' + temp;
     if (k === 'storm') return 'Thunder! I\'ll stay snug on my lily pad.' + temp;
     if (k === 'snow') return 'Snow in ' + where + '! Brrr!' + temp;
     if (k === 'rain' || k === 'drizzle') return 'It\'s raining in ' + where + '! Frogs love the rain.';
@@ -283,12 +289,16 @@
     });
     syncEngine();
   }
+  let windSaid = 0; // so he mentions a windy day once when the weather arrives, and again if it picks up
   function syncEngine() {
     if (!engine) return;
     const cold = coldNow(), wet = isRainy();
     engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(S.owned.bobble && cold ? 'bobble' : S.hat);
     engine.setOutfit({ neck: S.owned.scarf && cold ? 'scarf' : S.neck, face: S.face, feet: S.owned.wellies && wet ? 'wellies' : 'none', umbrella: !!(S.owned.umbrella && wet) });
-    engine.setWind(wx() && wx().wind);
+    engine.setWind(windKmh());
+    const wl = windLevel();
+    if (wl >= 2 && wl > windSaid && S.stage !== 'egg' && !S.asleep) setTimeout(() => { say(pick(["Ooh, it's blowy! Hold on to your hat!", 'Whoosh! The wind nearly blew me off my lily pad!', "Wheee! It's so windy in " + place().name + '!']), 3000); engine && engine.react('tickle'); }, 900);
+    windSaid = wl;
     const auto = [S.owned.bobble && cold && 'bobble', S.owned.scarf && cold && 'scarf', S.owned.wellies && wet && 'wellies', S.owned.umbrella && wet && 'umbrella'].filter(Boolean).join();
     if (autoWear !== null && auto !== autoWear && auto && S.stage !== 'egg') setTimeout(() => say(wet ? "It's raining in " + place().name + '! ' + (S.owned.wellies ? 'Wellies on!' : 'Umbrella up!') : "Brrr, it's cold in Fleet! Wrapping up warm.", 3000), 50);
     autoWear = auto;
@@ -1211,16 +1221,17 @@
         h += '<path d="M' + (x - w) + ' 120 Q' + (x + lean * .2) + ' ' + (top + 50) + ' ' + (x + lean) + ' ' + top + ' Q' + (x + lean * .2 + w * .6) + ' ' + (top + 50) + ' ' + (x + w) + ' 120 Z" fill="currentColor"/>';
         if (head) h += '<rect x="' + (x + lean * .9 - 3.5) + '" y="' + (top + 2) + '" width="7" height="20" rx="3.5" fill="#4a2e1c" opacity=".85"/>'; }); return h; };
     }
-    $('trees').innerHTML = hz; $('reedsL').innerHTML = corner(0); $('reedsR').innerHTML = corner(1);
+    $('trees').innerHTML = hz; $('reedsL').innerHTML = '<g class="sway">' + corner(0) + '</g>'; $('reedsR').innerHTML = '<g class="sway">' + corner(1) + '</g>';
     $('sceneFx').innerHTML = fx;
   }
 
   // ---------- Build static bits ----------
   (function build() {
     // pond scenery: ripples, stars and clouds (the horizon and corners depend on the scene)
+    $('gusts').innerHTML = Array.from({ length: 12 }, (_, i) => (i % 3 === 2 ? '<b' : '<i') + ' style="top:' + (8 + Math.random() * 70).toFixed(0) + '%;animation-delay:' + (-Math.random() * 6).toFixed(2) + 's;animation-duration:' + (2.6 + Math.random() * 2.4).toFixed(2) + 's;--r:' + (Math.random() * 360).toFixed(0) + 'deg"></' + (i % 3 === 2 ? 'b>' : 'i>')).join('');
     $('ripples').innerHTML = Array.from({ length: 14 }, (_, i) => '<span style="left:' + (5 + Math.random() * 88) + '%;top:' + (8 + Math.random() * 84) + '%;animation-delay:' + (-Math.random() * 4).toFixed(2) + 's;--s:' + (.6 + Math.random() * .8).toFixed(2) + '"></span>').join('');
     $('stars').innerHTML = Array.from({ length: 40 }, () => '<span style="left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 90) + '%;animation-delay:' + (-Math.random() * 4).toFixed(2) + 's;opacity:' + (.4 + Math.random() * .6).toFixed(2) + '"></span>').join('');
-    $('clouds').innerHTML = Array.from({ length: 6 }, (_, i) => '<span style="top:' + (62 + i * 5 + Math.random() * 4) + '%;animation-duration:' + (90 + Math.random() * 80).toFixed(0) + 's;animation-delay:' + (-Math.random() * 160).toFixed(0) + 's;--w:' + (90 + Math.random() * 90).toFixed(0) + 'px"></span>').join('');
+    $('clouds').innerHTML = Array.from({ length: 6 }, (_, i) => '<span style="top:' + (62 + i * 5 + Math.random() * 4) + '%;--cd:' + (90 + Math.random() * 80).toFixed(0) + 's;animation-delay:' + (-Math.random() * 160).toFixed(0) + 's;--w:' + (90 + Math.random() * 90).toFixed(0) + 'px"></span>').join('');
     $('fireflies').innerHTML = Array.from({ length: 12 }, () =>
       '<span style="left:' + (Math.random() * 92 + 4) + '%;top:' + (Math.random() * 80 + 5) + '%;animation-duration:' + (3 + Math.random() * 4) + 's;animation-delay:' + (-Math.random() * 6) + 's"></span>').join('');
 
@@ -1363,7 +1374,7 @@
     const low = needs.slice().sort((a, b) => a.v - b.v)[0], m = mood();
 
     // sky
-    const ph = scenePhase(), wk = sceneWeather(), wet = ['rain', 'drizzle', 'storm'].includes(wk), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene + (FANTASY[S.scene] ? ' fantasy' : '');
+    const ph = scenePhase(), wk = sceneWeather(), wet = ['rain', 'drizzle', 'storm'].includes(wk), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene + (FANTASY[S.scene] ? ' fantasy' : '') + ' wind-' + windLevel();
     if (builtScene !== S.scene) { buildScenery(S.scene); fetchWeather(); }
     if ($('pond').className !== cls) $('pond').className = cls;
     const orb = S.scene === 'spooky' ? 'moon full' : FANTASY[S.scene] ? '' : S.scene === 'desert' ? 'sun big' : wk === 'clear' || wk === 'partly' ? (ph === 'night' ? 'moon' : 'sun') : '';
@@ -1372,6 +1383,7 @@
     show('fireflies', (ph === 'night' || ph === 'dusk') && !wet && wk !== 'snow'); show('rain', wet);
     show('wx', hatched && wxFresh() && !FANTASY[S.scene]);
     if (wxFresh()) { text($('wxIcon'), WX_ICON[wk][ph === 'night' ? 1 : 0]); text($('wxTemp'), wx().temp + '°C ' + placeName()); }
+    show('wxWind', windLevel() > 0);
 
     show('head', hatched); show('dock', hatched); show('speech', hatched); show('eggSheet', !hatched);
     show('night', hatched && S.asleep); show('zzz', hatched && S.asleep); show('dream', hatched && S.asleep && !!dream); show('looSign', !!S.away);
