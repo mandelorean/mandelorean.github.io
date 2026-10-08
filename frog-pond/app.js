@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-08.2'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-08.3'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -505,10 +505,43 @@
       if (S.scene === 'london' && new Date().getMinutes() === 0 && Math.random() < .5) sfx('bong');
       if (Math.random() < .4) sfx('ribbit');
     }
+    if (now >= nextJoke) { nextJoke = now + rand(120e3, 240e3); tellJoke(); return; }
     if (now - lastInteract > 30e3 && now >= nextNudge) {
       nextNudge = now + rand(40e3, 70e3);
       engine.hop(); sfx('ribbit'); say(nudgeLine(), 4200);
     }
+  }
+  // ---------- Jokes: now and then he tells one (setup, a pause, then the punchline) ----------
+  const JOKES = [
+    ['What do frogs order at a café?', 'French flies!'], ['Why are frogs always so happy?', 'They eat whatever bugs them!'],
+    ['What happens when a frog parks in the wrong place?', 'It gets toad away!'], ["What's a frog's favourite drink?", 'Croak-a-cola!'],
+    ['How does a frog feel with a broken leg?', 'Unhoppy!'], ['What shoes do frogs wear in summer?', 'Open-toad sandals!'],
+    ['Where do frogs keep their money?', 'In the river bank!'], ['Why did the tadpole feel shy?', 'Because he was newt to the pond!'],
+    ['What do you get if you cross a frog and a rabbit?', 'A bunny ribbit!'], ["What's a frog's favourite year?", 'A leap year!'],
+    ["What's a frog's favourite sweet?", 'A lolli-hop!'], ['What music do frogs like best?', 'Hip hop!'],
+    ['Why did the frog say “meow”?', 'He was learning a foreign language!'], ['What do frogs do with paper?', 'Rip-it! Rip-it!'],
+    ['What do you call a fly with no wings?', 'A walk!'], ['Why did the fly stay away from the computer?', 'It was scared of the World Wide Web!'],
+    ['What did the sea say to the beach?', 'Nothing, it just waved!'], ['Why do fish live in salt water?', 'Because pepper makes them sneeze!'],
+    ['What do you call a fish with no eyes?', 'A fsh!'], ['Why did the maths book look so sad?', 'It had too many problems!'],
+    ['Why was six scared of seven?', 'Because seven eight nine!'], ["What's a snake's favourite subject?", 'Hiss-tory!'],
+    ['Why did the teddy bear say no to pudding?', 'Because she was stuffed!'], ['What do you call a sleeping dinosaur?', 'A dino-snore!'],
+    ['What do you call a dinosaur who knows lots of words?', 'A thesaurus!'], ['What do you call a bear with no teeth?', 'A gummy bear!'],
+    ['Why did the cow go to space?', 'To see the moooon!'], ['What do elves learn at school?', 'The elf-abet!'],
+    ['What did one plate say to the other plate?', 'Dinner’s on me!'], ['How do bees brush their hair?', 'With a honeycomb!'],
+    ['What do you call a duck who gets top marks?', 'A wise quacker!'], ['Why did the bike fall over?', 'It was two tyred!'],
+    ["What's orange and sounds like a parrot?", 'A carrot!'], ['Why did the frog bring a ladder to school?', 'He wanted to go to high school!'],
+    ['What did the left eye say to the right eye?', 'Between you and me, something smells!'], ['How do you make a lily pad laugh?', 'Tickle its toad-sies!'],
+    ['Why are fish so clever?', 'Because they live in schools!'], ['What did the frog say to the slow snail?', 'Hop to it!'],
+    ["What's a frog's favourite game?", 'Hop-scotch!'], ['What do you call a snowman in summer?', 'A puddle!']];
+  let nextJoke = Date.now() + 60e3, jokeAt = 0;
+  function tellJoke() {
+    let heard = []; try { heard = JSON.parse(localStorage.getItem('fp-jokes') || '[]'); } catch (e) {}
+    let fresh = JOKES.map((_, i) => i).filter(i => !heard.includes(i)); if (!fresh.length) { heard = []; fresh = JOKES.map((_, i) => i); }
+    const i = pick(fresh), [q, a] = JOKES[i]; heard.push(i);
+    try { localStorage.setItem('fp-jokes', JSON.stringify(heard)); } catch (e) {}
+    jokeAt = Date.now(); const intro = Math.random() < .4 ? pick(['Want to hear a joke? ', 'I know a good one! ', 'Joke time! ']) : '';
+    engine && engine.lookAround(); say(intro + q, 4200);
+    setTimeout(() => { if (S.toast !== intro + q || S.asleep) return; say((a + ' ' + pick(['Hee hee!', 'Ribbit ribbit!', 'Ha ha!', ''])).trim(), 4200); sfx('giggle'); engine && engine.react('tickle'); }, 4000);
   }
   function nudgeLine() {
     const lines = [], open = openLearnJob();
@@ -641,6 +674,7 @@
     engine && engine.react(tickle ? 'tickle' : 'pet'); sfx(tickle ? 'giggle' : 'ribbit');
     addHearts(); count('cuddles'); job('cuddle'); give({ love: 12 }, petN % 2 === 0 ? 1 : 0);
     if (tickle) earn(1);
+    if (Date.now() - jokeAt > 60e3 && Math.random() < .12) { nextJoke = Date.now() + rand(120e3, 240e3); setTimeout(() => { if (!quiet() && !S.asleep) tellJoke(); }, 3000); }
     say(tickle ? 'Hee hee! That tickles!' : pick(['Aww, I love cuddles.', 'More pats please!', 'You are my best friend.']));
     lock(tickle ? 800 : 650);
   }
