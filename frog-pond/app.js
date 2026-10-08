@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-04.3'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-08.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -596,9 +596,36 @@
     [500, 900, 1300, 1700].forEach(d => setTimeout(() => sfx('pop'), d));
     setTimeout(() => { count('baths'); job('bath'); give({ clean: 45 }, 1); earn(1); say('So bubbly! I feel shiny.'); }, 1400);
   }
+  // ---------- Dreams: a thought bubble while asleep, made from things she's done and things to look forward to ----------
+  let dream = null, lastDream = '';
+  function dreams() {
+    const d = [['pest_control', 'Juicy flies', 'Mmm… flies… so many flies…', '#5a7a3a'], ['pool', 'Swimming', 'Splish… splash… zzz…', '#37aae3'],
+      ['star', 'Gold stars', 'Three stars… all for me…', '#F5B915'], ['eco', 'Lily coins', 'Coins… lots of lily coins…', '#5AA04A'], ['bedtime', 'Counting sheep', 'One sheep… two sheep… zzz…', '#8a8fd6']];
+    // a times table fact, from the table practised most (or any table)
+    const tabs = S.history.filter(h => h.kind === 'tables' && /^\d+$/.test(h.key)).map(h => +h.key);
+    const a = tabs.length && Math.random() < .7 ? pick(tabs) : 2 + Math.floor(Math.random() * 11), b = 2 + Math.floor(Math.random() * 11);
+    d.push(['calculate', a + ' × ' + b + ' = ' + a * b, a + ' times ' + b + ' is… ' + a * b + '… zzz', '#a780e6']);
+    SHOP.friends.forEach(([id]) => { if (S.owned[id]) { const it = ITEM[id]; d.push([it.icon, 'Playing with ' + it.name.toLowerCase(), 'Hee hee… ' + it.name.toLowerCase() + '… zzz', it.color]); } });
+    // places: ones she owns, plus one she's saving up for (so they don't crowd out everything else)
+    const places = SHOP.places.map(([id]) => ITEM[id]).filter(it => it.id !== 'pond' && it.id !== S.scene);
+    places.filter(it => S.owned[it.id]).sort(() => Math.random() - .5).slice(0, 2).forEach(it => d.push([it.icon, 'Visiting ' + it.name, 'Mmm… ' + it.name + '… zzz', it.color]));
+    const wish = places.filter(it => !S.owned[it.id]); if (wish.length) { const it = pick(wish); d.push([it.icon, 'One day… ' + it.name + '!', 'I wish… I wish… ' + it.name + '…', it.color]); }
+    return d.filter(x => x[1] !== lastDream);
+  }
+  function nextDream() {
+    if (!S.asleep) { dream = null; return; }
+    const [icon, caption, mumble, color] = pick(dreams()); lastDream = caption;
+    const el = $('dream'), first = !dream;
+    const put = () => { dream = { caption, mumble }; text($('dreamIcon'), icon); $('dreamIcon').style.color = color; text($('dreamText'), caption); el.classList.remove('swap'); };
+    if (first) { put(); render(); } else { el.classList.add('swap'); setTimeout(put, 600); }
+  }
+  setInterval(() => { if (S.asleep && !dream) nextDream(); else if (!S.asleep && dream) { dream = null; render(); } }, 1000);
+  setInterval(() => { if (S.asleep && dream && !document.hidden) nextDream(); }, 7000);
+  $('dream').addEventListener('click', e => { e.stopPropagation(); if (dream) say(dream.mumble, 2600); });
+
   function pet() {
     if (S.stage === 'egg') { engine && engine.react('no'); return; }
-    if (S.asleep) { say(pick(['Zzz… shh, sleeping…', 'Mmm… five more minutes…', 'Zzz… ribbit… zzz…']), 2000); return; }
+    if (S.asleep) { say(dream && Math.random() < .7 ? dream.mumble : pick(['Zzz… shh, sleeping…', 'Mmm… five more minutes…', 'Zzz… ribbit… zzz…']), 2400); return; }
     if (!canAct()) return;
     petN++; const tickle = petN % 3 === 0;
     engine && engine.react(tickle ? 'tickle' : 'pet'); sfx(tickle ? 'giggle' : 'ribbit');
@@ -1347,7 +1374,7 @@
     if (wxFresh()) { text($('wxIcon'), WX_ICON[wk][ph === 'night' ? 1 : 0]); text($('wxTemp'), wx().temp + '°C ' + placeName()); }
 
     show('head', hatched); show('dock', hatched); show('speech', hatched); show('eggSheet', !hatched);
-    show('night', hatched && S.asleep); show('zzz', hatched && S.asleep); show('looSign', !!S.away);
+    show('night', hatched && S.asleep); show('zzz', hatched && S.asleep); show('dream', hatched && S.asleep && !!dream); show('looSign', !!S.away);
     if (hatched) {
       text($('name'), name);
       text($('coins'), String(S.coins));
@@ -1373,7 +1400,7 @@
       text($('jobsCount'), 'Jobs ' + jd + '/' + jl.length);
       $('jobsBtn').classList.toggle('all', jl.length > 0 && jd === jl.length);
     }
-    show('jobsBtn', hatched && !!S.jobs);
+    show('jobsBtn', hatched && !!S.jobs && !S.asleep); // the dream bubble sits there while he sleeps
     const C = COLOURS[S.colour] || COLOURS.green, app = $('app');
     if (app.dataset.colour !== S.colour) { app.dataset.colour = S.colour; app.style.setProperty('--frog', C.rainbow ? '#67c24a' : C.swatch); app.style.setProperty('--frog2', hex(C.spot)); }
 
