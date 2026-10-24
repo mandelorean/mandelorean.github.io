@@ -73,9 +73,23 @@
         if (s.nextFood <= 0) { spawnFood(); s.nextFood = .45 + Math.random() * .55; }
       }
       const fx = FX(), fr = FR();
+      // cyborg suit: lock on to a bug ahead with the laser, then reel it into his mouth with a tractor beam
+      if (o.cyborg && !s.over) {
+        s.tbCool = Math.max(0, (s.tbCool || 0) - dt);
+        if (s.tb && (s.tb.t.gone || s.tb.t.x < fx)) { s.tb = null; s.tbCool = .3; }
+        if (!s.tb && s.tbCool <= 0) {
+          const tgt = s.things.filter(t => t.food && !t.gone && t.x > fx + fr && t.x < fx + W * .55 && Math.abs(t.y - f.y) < H * .2).sort((a, b) => a.x - b.x)[0];
+          if (tgt) { s.tb = { t: tgt, age: 0 }; o.onBeam && o.onBeam(); }
+        }
+        if (s.tb) {
+          const tb = s.tb; tb.age += dt;
+          if (tb.age > .15) { const t = tb.t, k = Math.min(1, dt * 7); t.held = true; t.x += (fx + fr * .9 - t.x) * k; t.y += (f.y + fr * .1 - t.y) * k; }
+        }
+      }
       s.things.forEach(t => {
         t.ph += dt;
-        if (t.k === 'newt') { t.x -= (v + t.extra) * dt; t.y = t.y0 + Math.sin(t.ph * 2) * H * .025; }
+        if (t.held) { /* being reeled in by the tractor beam */ }
+        else if (t.k === 'newt') { t.x -= (v + t.extra) * dt; t.y = t.y0 + Math.sin(t.ph * 2) * H * .025; }
         else if (t.k === 'lobster') t.x -= (v + H * .03) * dt;
         else if (t.k === 'sewage') { t.x -= v * dt; t.y = t.y0 + Math.sin(t.ph * 1.3) * H * .02; }
         else if (t.k === 'fly') { t.x -= (v - H * .02) * dt; t.y = t.y0 + Math.sin(t.ph * 5) * H * .012; }
@@ -147,6 +161,28 @@
     }
     function bubbles() { ctx.lineWidth = 1.5; s.bubbles.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.stroke(); }); }
 
+    function eyePos() {
+      const f = s.frog, r = FR(), rot = clamp(f.vy / (H * .8), -.45, .45), lx = r * .45, ly = -r * .68;
+      return [FX() + Math.cos(rot) * lx - Math.sin(rot) * ly, f.y + Math.sin(rot) * lx + Math.cos(rot) * ly];
+    }
+    function drawBeam() {
+      const tb = s.tb; if (!tb || s.over) return;
+      const [ex, ey] = eyePos(), t = tb.t, dx = t.x - ex, dy = t.y - ey, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, locked = tb.age > .15;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      if (locked) {
+        const w = H * (.045 + Math.sin(s.t * 14) * .008);
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(t.x + nx * w, t.y + ny * w); ctx.lineTo(t.x - nx * w, t.y - ny * w); ctx.closePath();
+        ctx.fillStyle = 'rgba(255,90,130,.28)'; ctx.fill();
+        for (let i = 0; i < 3; i++) {
+          const q = 1 - ((s.t * 1.8 + i / 3) % 1), rr = Math.max(1, w * q);
+          ctx.beginPath(); ctx.ellipse(ex + dx * q, ey + dy * q, Math.max(1, rr * .3), rr, Math.atan2(dy, dx), 0, TAU); ctx.strokeStyle = 'rgba(255,170,190,.65)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+      }
+      const reach = locked ? 1 : tb.age / .15;
+      ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + dx * reach, ey + dy * reach); ctx.strokeStyle = 'rgba(255,60,60,.95)'; ctx.lineWidth = H * .006; ctx.stroke();
+      if (locked && tb.age < .35) ell(t.x, t.y, H * .035, H * .035, 0, 'rgba(255,200,200,.45)');
+      ctx.restore();
+    }
     function drawFrog() {
       const f = s.frog, x = FX(), y = f.y, r = FR();
       if (f.hurt > 0 && !s.over && Math.floor(f.hurt * 10) % 2 === 0) ctx.globalAlpha = .35;
@@ -274,7 +310,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       backdrop(); bubbles();
       s.things.forEach(t => (t.food ? drawFood(t) : t.k === 'newt' ? drawNewt(t) : t.k === 'lobster' ? drawLobster(t) : drawSewage(t)));
-      drawFrog(); hud();
+      drawFrog(); drawBeam(); hud();
     }
     return {
       step(dt) { o.running = true; update(dt); draw(); },

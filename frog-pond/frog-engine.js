@@ -948,6 +948,40 @@
     })();
 
     function mouthWorld(c) { const v = new T.Vector3(); c.mouth.mg.getWorldPosition(v); return v; }
+    // ---------- Cyborg tractor beam: a thin laser that locks on, then a wide pulsing beam that reels a bug in ----------
+    const tractor = new T.Group(); tractor.visible = false; scene.add(tractor);
+    {
+      const add = T.AdditiveBlending;
+      const core = new T.Mesh(new T.CylinderGeometry(.03, .03, 1, 10, 1, true), new T.MeshBasicMaterial({ color: 0xff3a3a, transparent: true, opacity: .95, depthWrite: false, blending: add }));
+      const cone = new T.Mesh(new T.CylinderGeometry(.32, .07, 1, 28, 1, true), new T.MeshBasicMaterial({ color: 0xff6a8a, transparent: true, opacity: .2, depthWrite: false, side: T.DoubleSide, blending: add }));
+      core.position.y = cone.position.y = .5;
+      const rings = [0, 1, 2].map(() => { const r = new T.Mesh(new T.TorusGeometry(1, .05, 8, 28), new T.MeshBasicMaterial({ color: 0xffa8b8, transparent: true, opacity: .6, depthWrite: false, blending: add })); r.rotation.x = Math.PI / 2; return r; });
+      tractor.add(core, cone, ...rings); tractor.userData = { core, cone, rings };
+    }
+    const UPV = new T.Vector3(0, 1, 0);
+    function eyeWorld() { const v = new T.Vector3(); (cyb.core || creatures.frog.anchor).getWorldPosition(v); return v; }
+    function aimTractor(to, mode, grow = 1) {
+      const from = eyeWorld(), d = to.clone().sub(from), L = Math.max(.01, d.length() * grow), u = tractor.userData, wide = mode === 'tractor';
+      tractor.visible = true; tractor.position.copy(from); tractor.quaternion.setFromUnitVectors(UPV, d.normalize()); tractor.scale.set(1, L, 1);
+      u.cone.visible = wide; u.core.material.opacity = .7 + Math.sin(t * 50) * .3;
+      u.cone.material.opacity = .16 + Math.sin(t * 14) * .07;
+      u.rings.forEach((r, i) => { r.visible = wide; const y = 1 - ((t * 1.6 + i / 3) % 1); r.position.y = y; const rad = .07 + (.32 - .07) * y; r.scale.set(rad, rad, rad / Math.max(.3, L)); });
+    }
+    // reel a bug in from wherever it is, then gobble it; ev() hears 'tractor' and 'gulp'
+    function tractorEat(fly, stunned, ev) {
+      const c = creatures.frog, h0 = fly.position.clone();
+      ev && ev('tractor');
+      tween(1.05, p => {
+        fly.userData.w.forEach((w, i) => { w.rotation.x = stunned ? .3 : Math.sin(t * 90 + i * Math.PI) * .9; });
+        const m = mouthWorld(c).add(new T.Vector3(0, .05, .5));
+        fly.position.lerpVectors(h0, m, E(p)); fly.position.x += Math.sin(t * 23) * .05 * (1 - p); fly.rotation.z += .15; fly.rotation.y += .08;
+        aimTractor(fly.position, 'tractor'); fx.squint = .35; fx.open = p > .7 ? (p - .7) / .3 * .8 : 0;
+      }, () => {
+        tractor.visible = false; const h1 = fly.position.clone();
+        tween(.16, p => { fx.open = .85; fly.position.lerpVectors(h1, mouthWorld(c), p); fly.scale.setScalar(1 - p * .9); }, () => { scene.remove(fly); chomp(); ev && ev('gulp'); });
+      });
+    }
+    const cyborgReady = () => !!cyb.core && stage !== 'egg' && keyOf(stage) === 'frog';
     function chomp() { tween(.55, p => { fx.open = Math.abs(Math.sin(p * Math.PI * 3)) * .9; fx.sy = 1 - Math.abs(Math.sin(p * Math.PI * 3)) * .04; }); }
     function burst(at, n = 26, size = 1) {
       const cols = [0xffd23f, 0xff7eb6, 0x6f8cff, 0x7fe0a0, 0xff9a4d];
@@ -1046,10 +1080,20 @@
         else if (kind === 'no') tween(.7, p => { fx.ry = Math.sin(p * Math.PI * 4) * .3 * (1 - p); });
         else if (kind === 'celebrate') tween(1.1, p => { fx.ry = E(p) * Math.PI * 2; fx.y = Math.sin(p * Math.PI) * .6; fx.open = .7; fx.squint = .8; });
       },
-      feed() {
+      feed(ev) {
         const c = creatures[keyOf(stage)]; if (!c.mouth) return;
         const fly = buildFly(); scene.add(fly);
         const side = Math.random() < .5 ? -1 : 1;
+        if (cyborgReady()) {
+          // the fly stays out of reach, so he locks on with his laser and reels it in with a tractor beam
+          const start = new T.Vector3(side * 3.3, 2.9, 1.5), far = new T.Vector3(side * 2, 2.55, 1.9);
+          const flap = () => fly.userData.w.forEach((w, i) => { w.rotation.x = Math.sin(t * 70 + i * Math.PI) * .7; });
+          tween(.8, p => { flap(); fly.position.lerpVectors(start, far, E(p)); fly.position.y += Math.sin(p * 18) * .06; fly.rotation.y = side > 0 ? Math.PI : 0; }, () => {
+            ev && ev('zap');
+            tween(.2, p => { flap(); aimTractor(fly.position, 'laser', p); }, () => tractorEat(fly, false, ev));
+          });
+          return 'tractor';
+        }
         const start = new T.Vector3(side * 3, 2.8, 1.4);
         const hover = () => mouthWorld(c).add(new T.Vector3(side * .35, .35, 1.25));
         const flap = () => fly.userData.w.forEach((w, i) => { w.rotation.x = Math.sin(t * 70 + i * Math.PI) * .7; });
@@ -1097,6 +1141,17 @@
       setWind(w) { wind = +w || 0; },
       // cyborg tricks: fire the laser eye, or blast off on rocket boots
       laser() { if (!cyb.beam) return false; cyb.laserUntil = t + .9; return true; },
+      // a bug buzzes past; he zaps it with his laser, then tractor-beams it into his mouth
+      zapBug(ev) {
+        if (!cyborgReady()) return false;
+        const fly = buildFly(); scene.add(fly);
+        const side = Math.random() < .5 ? -1 : 1, a = new T.Vector3(side * 3.6, 3.2, .6), b = new T.Vector3(side * 1.7, 2.05 + Math.random() * .4, 1.9);
+        tween(1.3, p => { fly.userData.w.forEach((w, i) => { w.rotation.x = Math.sin(t * 70 + i * Math.PI) * .7; }); fly.position.lerpVectors(a, b, E(p)); fly.position.y += Math.sin(p * 20) * .1; fly.position.x += Math.cos(p * 13) * .12; fly.rotation.y = side > 0 ? Math.PI : 0; }, () => {
+          ev && ev('zap');
+          tween(.3, p => { aimTractor(fly.position, 'laser', Math.min(1, p * 3)); if (p > .4 && !fly.userData.zapped) { fly.userData.zapped = true; burst(fly.position.clone(), 10, .35); } }, () => tractorEat(fly, true, ev));
+        });
+        return true;
+      },
       rocket() {
         if (!cyb.flames.length || stage === 'egg') return false;
         cyb.rocketUntil = t + 2.5;

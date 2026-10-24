@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-24.2'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-24.3'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -500,7 +500,14 @@
   // cyborg suit: now and then he fires his laser eye or blasts off on his rocket boots
   function cyborgTrick(kind) {
     if (!engine || S.face !== 'cyborg' || S.stage === 'tadpole' || S.asleep || S.away) return;
-    if ((kind || (Math.random() < .5 ? 'laser' : 'rocket')) === 'laser') { if (engine.laser()) { sfx('laser'); if (Math.random() < .4 && !S.toast) say(pick(['Pew pew!', 'Laser eye, activate!', 'Zap! Got that fly!']), 1800); } }
+    if ((kind || (Math.random() < .5 ? 'laser' : 'rocket')) === 'laser') {
+      // a bug buzzes past: zap it, tractor-beam it in, gobble it
+      engine.zapBug(ev => {
+        if (ev === 'zap') { sfx('laser'); if (!S.toast) say(pick(['Bug detected! Pew pew!', 'Laser eye, lock on!', 'Target spotted!']), 1600); }
+        if (ev === 'tractor') sfx('tractor');
+        if (ev === 'gulp') { sfx('crunch'); give({ food: 5 }); if (!S.toast) say(pick(['Tractor beam snack! Yum!', 'Beep boop. Delicious.', 'Got it! Crunchy!']), 1800); }
+      });
+    }
     else if (engine.rocket()) { sfx('rocket'); if (!S.toast) say(pick(['Rocket boots, go!', 'Whoooosh! Up, up and away!', 'Three, two, one… blast off!']), 2200); }
   }
   function maybeIdle(now) {
@@ -636,11 +643,15 @@
   function feed() {
     if (!canAct()) return;
     if (S.needs.food >= 95) { engine && engine.react('no'); say("I'm full! No more flies."); return; }
-    engine && engine.feed(); lock(1700); sfx('buzz');
-    setTimeout(() => {
+    const fed = () => {
       sfx('crunch'); S.potty += POTTY_PER_MEAL; count('feeds'); job('feed');
-      give({ food: 30 }, 1); earn(1); say(pick(['Yum! Crunchy fly!', 'Mmm, thank you!', 'Tasty! More please?']));
-    }, 1300);
+      give({ food: 30 }, 1); earn(1);
+      say(S.face === 'cyborg' ? pick(['Tractor beam: success! Yum!', 'Beep boop… delicious!', 'Gotcha! Crunchy cyborg snack!']) : pick(['Yum! Crunchy fly!', 'Mmm, thank you!', 'Tasty! More please?']));
+    };
+    sfx('buzz');
+    // in the cyborg suit he locks on with his laser and reels the fly in with a tractor beam
+    const how = engine && engine.feed(ev => { if (ev === 'zap') sfx('laser'); if (ev === 'tractor') sfx('tractor'); if (ev === 'gulp') fed(); });
+    if (how === 'tractor') lock(2500); else { lock(1700); setTimeout(fed, 1300); }
   }
   function bath() {
     if (!canAct()) return;
@@ -924,6 +935,7 @@
     splashy = Splashy.create($('splashCanvas'), {
       colour: c.body, belly: c.belly, spot: c.spot, cyborg: S.face === 'cyborg', hat: S.hat,
       onEat: (p, k) => { g.score += p; sfx(k === 'golden' ? 'coin' : 'pop'); },
+      onBeam: () => sfx('laser'),
       onHit: h => { g.hearts = h; bonk(); sfx('bonk'); },
       onEnd: () => { if (S.game === g && g.phase === 'run') endGame(); }
     });
@@ -1736,7 +1748,7 @@
     }
   }
 
-  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, cyborgTrick, openGame, state: () => S }; // test hook
+  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, cyborgTrick, openGame, feed, engine: () => engine, state: () => S }; // test hook
 
   // ---------- Go ----------
   const iconsOk = () => document.documentElement.classList.add('icons-ok');

@@ -81,6 +81,7 @@
     slurp(t) { hiss(t, .5, 'bandpass', 600, 1800, .25, 3, .05); tone('sine', 300, 700, t + .1, .35, .08); },
     laser(t) { [0, .12, .24].forEach(d => tone('square', 1800, 260, t + d, .11, .07)); },
     rocket(t) { hiss(t, 2.2, 'lowpass', 300, 1600, .35, .8, .15); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600; tone('sawtooth', 60, 140, t, 2, .08, f); },
+    tractor(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1100; const o = tone('sawtooth', 150, 330, t, 1.1, .07, f); wobble(o, t, 1.1, 14, 30); tone('sine', 600, 900, t, 1.1, .04); },
     stroke(t) { tone('sine', 260, 520, t, .09, .12); hiss(t, .12, 'bandpass', 900, 1600, .08, 1.2, .01); },
     whoosh(t) { hiss(t, .7, 'bandpass', 400, 2400, .3, 1.5, .2); },
     zoom(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const o = tone('sawtooth', 180, 900, t, .7, .12, f); wobble(o, t, .7, 30, 20); },
