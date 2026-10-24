@@ -476,6 +476,29 @@
     }
     function buildFace(k) {
       const g = new T.Group();
+      if (k === 'cat') {
+        const ginger = mat(0xf2a65a, { roughness: .7, clearcoat: .1 }), pink = mat(0xffb3c6, { roughness: .7 });
+        [-1, 1].forEach(sd => {
+          const ear = new T.Group(); ear.position.set(sd * .84, -.18, -.12); ear.rotation.set(-.15, 0, -sd * .38);
+          const outer = new T.Mesh(new T.ConeGeometry(.24, .5, 4), ginger); outer.position.y = .22; outer.rotation.y = Math.PI / 4; outer.scale.z = .45; outer.castShadow = true; ear.add(outer);
+          const inner = new T.Mesh(new T.ConeGeometry(.15, .34, 4), pink); inner.position.set(0, .18, .07); inner.rotation.y = Math.PI / 4; inner.scale.z = .25; ear.add(inner);
+          g.add(ear);
+          // whiskers: three each side
+          [-.06, 0, .06].forEach((dy, i) => {
+            const w = new T.Mesh(new T.CylinderGeometry(.008, .008, .62, 5), mat(0x2b2b33)); w.position.set(sd * .62, -.56 + dy, .98 - Math.abs(dy)); w.rotation.z = sd * (Math.PI / 2 + (i - 1) * .18); w.rotation.y = -sd * .35; g.add(w);
+          });
+        });
+        g.add(sph(.075, mat(0xff7aa2, { clearcoat: 1 }), 1.3, .8, .8, 0, -.47, 1.0));
+        return g;
+      }
+      if (k === 'sith') {
+        // a big dark hood, open at the front so you can still see his eyes
+        const cloth = mat(0x1c1820, { roughness: .85, clearcoat: 0, side: T.DoubleSide });
+        const hood = new T.Mesh(new T.SphereGeometry(1, 40, 20, Math.PI / 2 + 1.25, Math.PI * 2 - 2.5, 0, 1.75), cloth);
+        hood.scale.set(1.3, 1.26, 1.12); hood.position.set(0, -.86, .06); hood.castShadow = true; g.add(hood);
+        const cap = new T.Mesh(new T.SphereGeometry(1, 40, 10, 0, Math.PI * 2, 0, .62), cloth); cap.scale.copy(hood.scale); cap.position.copy(hood.position); cap.castShadow = true; g.add(cap);
+        return g;
+      }
       if (k === 'cyborg') {
         // a metal eyepiece over his right eye with a red laser lens, and a metal plate on that side of his head
         const E = { x: .48, y: -.12, z: .74 }, metal = METAL(), dark = mat(0x2a2f36, { metalness: .6, roughness: .3 });
@@ -508,6 +531,15 @@
     }
     function buildFeet(k) {
       const g = new T.Group();
+      if (k === 'paws') {
+        // fluffy white paws with pink toe beans
+        const fluff = mat(0xffffff, { roughness: .9, clearcoat: 0 }), bean = mat(0xff9fbf, { roughness: .6 });
+        [[-.42, .84, .19], [.42, .84, .19], [-1.12, .5, .25], [1.12, .5, .25]].forEach(([x, z, r]) => {
+          g.add(sph(r * 1.2, fluff, 1, .6, 1.15, x, .1, z));
+          [-1, 0, 1].forEach(i => g.add(sph(r * .22, bean, 1, .6, 1, x + i * r * .45, .16, z + r * 1.05)));
+        });
+        return g;
+      }
       if (k === 'rockets') {
         // rocket boots: metal boots with an orange stripe and a nozzle, and flames that light up when he blasts off
         const metal = METAL(), stripe = GLOW(0xff8a2a, .5), dark = mat(0x2a2f36, { metalness: .6, roughness: .3 });
@@ -533,8 +565,34 @@
       });
       return g;
     }
-    function buildSuit(on) {
-      const g = new T.Group(); cyb.lights = []; if (!on) return g;
+    // costume parts that animate: the cat's tail, the Sith's lightsaber and lightning hand
+    const cos = { tail: null, blade: null, hand: null, saberUntil: 0, saberLen: 0 };
+    function buildSuit(kind) {
+      const g = new T.Group(); cyb.lights = []; cos.tail = cos.blade = cos.hand = null;
+      if (kind === 'cat') {
+        // a ginger tail with a white tip, curling up from his bottom
+        const ginger = mat(0xf2a65a, { roughness: .7, clearcoat: .1 }), tg = new T.Group(); tg.position.set(0, .45, -.98);
+        const curve = new T.CatmullRomCurve3([new T.Vector3(0, 0, 0), new T.Vector3(0, .15, -.35), new T.Vector3(.12, .6, -.55), new T.Vector3(.05, 1.05, -.4), new T.Vector3(-.12, 1.28, -.18)]);
+        const tube = new T.Mesh(new T.TubeGeometry(curve, 40, .1, 12), ginger); tube.castShadow = true; tg.add(tube);
+        [.35, .55, .75].forEach(u => { const pt = curve.getPoint(u), r = new T.Mesh(new T.TorusGeometry(.105, .035, 8, 18), mat(0xc97a32, { roughness: .7 })); r.position.copy(pt); r.lookAt(pt.clone().add(curve.getTangent(u))); tg.add(r); });
+        tg.add(sph(.12, mat(0xffffff, { roughness: .8 }), 1, 1, 1, -.12, 1.28, -.18));
+        g.add(tg); cos.tail = tg; return g;
+      }
+      if (kind === 'sith') {
+        // a dark hooded cloak, and a lightsaber clipped to his side
+        const cloth = mat(0x1c1820, { roughness: .85, clearcoat: 0, side: T.DoubleSide });
+        const cloak = new T.Mesh(new T.CylinderGeometry(1.12, 1.4, 1.2, 44, 1, true, Math.PI / 2 - .3, Math.PI + .6), cloth); cloak.position.y = .72; cloak.castShadow = true; g.add(cloak);
+        const sg = new T.Group(); sg.position.set(1.08, .42, .5); sg.rotation.set(.55, 0, -.35);
+        const hilt = new T.Mesh(new T.CylinderGeometry(.055, .06, .34, 14), METAL()); sg.add(hilt);
+        [-.08, .02, .1].forEach(y => { const b = new T.Mesh(new T.CylinderGeometry(.064, .064, .03, 14), mat(0x22262c, { metalness: .5 })); b.position.y = y; sg.add(b); });
+        const bladeG = new T.Group(); bladeG.position.y = .17; bladeG.scale.y = .001; bladeG.visible = false;
+        const core = new T.Mesh(new T.CylinderGeometry(.03, .035, 1.5, 12), new T.MeshBasicMaterial({ color: 0xfff0f0 })); core.position.y = .75; bladeG.add(core);
+        const glow = new T.Mesh(new T.CylinderGeometry(.075, .085, 1.55, 14), new T.MeshBasicMaterial({ color: 0xff2030, transparent: true, opacity: .55, depthWrite: false, blending: T.AdditiveBlending })); glow.position.y = .76; bladeG.add(glow);
+        sg.add(bladeG); g.add(sg); cos.blade = bladeG;
+        const hand = new T.Object3D(); hand.position.set(.55, .72, 1.02); g.add(hand); cos.hand = hand;
+        return g;
+      }
+      if (kind !== 'cyborg') return g;
       // a metal chest panel on his side with three blinking lights
       const metal = METAL(), panel = new T.Group();
       panel.position.set(-.9, .66, .56); panel.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), new T.Vector3(-.75, -.3, .59).normalize());
@@ -830,6 +888,11 @@
         if (on) { const f = .7 + Math.sin(t * 60) * .3; cyb.beam.scale.set(f, 1, f); cyb.glow.scale.setScalar(.8 + f * .5); }
         cyb.core.material.emissiveIntensity = on ? 4 : 1.4 + Math.sin(t * 3) * .5;
       }
+      if (cos.tail) { cos.tail.rotation.z = Math.sin(t * 1.8) * .3; cos.tail.rotation.x = Math.sin(t * 1.1) * .08; }
+      if (cos.blade) {
+        const want = t < cos.saberUntil ? 1 : 0; cos.saberLen += (want - cos.saberLen) * Math.min(1, (want ? 9 : 6) / 60);
+        cos.blade.visible = cos.saberLen > .02; cos.blade.scale.y = Math.max(.001, cos.saberLen); if (cos.blade.visible) cos.blade.children[1].material.opacity = .45 + Math.random() * .2;
+      }
       cyb.lights.forEach((l, i) => { l.material.emissiveIntensity = Math.sin(t * 2.2 + i * 2.1) > 0 ? 2.2 : .3; });
       if (cyb.flames.length) { const on = t < cyb.rocketUntil; cyb.flames.forEach((f, i) => { f.visible = on; if (on) f.scale.set(1, .8 + Math.random() * .5 + Math.sin(t * 40 + i) * .1, 1); }); }
       // wind: the hat wobbles, and now and then a gust lifts it right up
@@ -967,21 +1030,48 @@
       u.cone.material.opacity = .16 + Math.sin(t * 14) * .07;
       u.rings.forEach((r, i) => { r.visible = wide; const y = 1 - ((t * 1.6 + i / 3) % 1); r.position.y = y; const rad = .07 + (.32 - .07) * y; r.scale.set(rad, rad, rad / Math.max(.3, L)); });
     }
+    // ---------- Sith lightning: jagged crackling bolts from his hand ----------
+    const bolts = new T.Group(); bolts.visible = false; scene.add(bolts);
+    const segGeo = new T.CylinderGeometry(1, 1, 1, 5, 1, true);
+    const boltCore = new T.MeshBasicMaterial({ color: 0xe8f6ff, transparent: true, opacity: .95, depthWrite: false, blending: T.AdditiveBlending });
+    const boltGlow = new T.MeshBasicMaterial({ color: 0x7fa8ff, transparent: true, opacity: .35, depthWrite: false, blending: T.AdditiveBlending });
+    const BOLTS = [0, 1, 2].map(() => Array.from({ length: 9 }, () => { const a = new T.Mesh(segGeo, boltCore), b = new T.Mesh(segGeo, boltGlow); bolts.add(a, b); return [a, b]; }));
+    const spark = new T.Mesh(new T.SphereGeometry(.2, 16, 12), new T.MeshBasicMaterial({ color: 0xbfe0ff, transparent: true, opacity: .5, depthWrite: false, blending: T.AdditiveBlending })); bolts.add(spark);
+    function placeSeg(m, a, b, r) { const d = b.clone().sub(a), L = d.length(); m.position.copy(a).addScaledVector(d, .5); m.quaternion.setFromUnitVectors(UPV, d.normalize()); m.scale.set(r, Math.max(.001, L), r); }
+    function handWorld() { const v = new T.Vector3(); (cos.hand || creatures.frog.anchor).getWorldPosition(v); return v; }
+    function aimLightning(to, reach = 1) {
+      bolts.visible = true;
+      const from = handWorld(), d = to.clone().sub(from), L = d.length(), dir = d.clone().normalize();
+      const p1 = new T.Vector3().crossVectors(dir, UPV); if (p1.lengthSq() < 1e-4) p1.set(1, 0, 0); p1.normalize(); const p2 = new T.Vector3().crossVectors(dir, p1);
+      BOLTS.forEach(segs => {
+        let prev = from.clone();
+        segs.forEach((pair, i) => {
+          const f = (i + 1) / segs.length * reach, amp = L * .09 * Math.sin(Math.PI * Math.min(1, f));
+          const next = from.clone().addScaledVector(d, f);
+          if (i < segs.length - 1) next.addScaledVector(p1, (Math.random() - .5) * amp * 2).addScaledVector(p2, (Math.random() - .5) * amp * 2);
+          placeSeg(pair[0], prev, next, .013); placeSeg(pair[1], prev, next, .045); prev = next;
+        });
+      });
+      spark.visible = reach >= 1; spark.position.copy(to); spark.scale.setScalar(.7 + Math.random() * .6);
+    }
+    const aimPower = (power, to, reach) => (power === 'lightning' ? aimLightning(to, reach) : aimTractor(to, reach === undefined ? 'tractor' : 'laser', reach));
     // reel a bug in from wherever it is, then gobble it; ev() hears 'tractor' and 'gulp'
-    function tractorEat(fly, stunned, ev) {
+    function tractorEat(fly, stunned, ev, power) {
       const c = creatures.frog, h0 = fly.position.clone();
       ev && ev('tractor');
       tween(1.05, p => {
         fly.userData.w.forEach((w, i) => { w.rotation.x = stunned ? .3 : Math.sin(t * 90 + i * Math.PI) * .9; });
         const m = mouthWorld(c).add(new T.Vector3(0, .05, .5));
         fly.position.lerpVectors(h0, m, E(p)); fly.position.x += Math.sin(t * 23) * .05 * (1 - p); fly.rotation.z += .15; fly.rotation.y += .08;
-        aimTractor(fly.position, 'tractor'); fx.squint = .35; fx.open = p > .7 ? (p - .7) / .3 * .8 : 0;
+        aimPower(power, fly.position); fx.squint = .35; fx.open = p > .7 ? (p - .7) / .3 * .8 : 0;
       }, () => {
-        tractor.visible = false; const h1 = fly.position.clone();
+        tractor.visible = false; bolts.visible = false; const h1 = fly.position.clone();
         tween(.16, p => { fx.open = .85; fly.position.lerpVectors(h1, mouthWorld(c), p); fly.scale.setScalar(1 - p * .9); }, () => { scene.remove(fly); chomp(); ev && ev('gulp'); });
       });
     }
     const cyborgReady = () => !!cyb.core && stage !== 'egg' && keyOf(stage) === 'frog';
+    const sithReady = () => !!cos.hand && stage !== 'egg' && keyOf(stage) === 'frog';
+    const power = () => (cyborgReady() ? 'laser' : sithReady() ? 'lightning' : null);
     function chomp() { tween(.55, p => { fx.open = Math.abs(Math.sin(p * Math.PI * 3)) * .9; fx.sy = 1 - Math.abs(Math.sin(p * Math.PI * 3)) * .04; }); }
     function burst(at, n = 26, size = 1) {
       const cols = [0xffd23f, 0xff7eb6, 0x6f8cff, 0x7fe0a0, 0xff9a4d];
@@ -1084,15 +1174,16 @@
         const c = creatures[keyOf(stage)]; if (!c.mouth) return;
         const fly = buildFly(); scene.add(fly);
         const side = Math.random() < .5 ? -1 : 1;
-        if (cyborgReady()) {
-          // the fly stays out of reach, so he locks on with his laser and reels it in with a tractor beam
+        const pw = power();
+        if (pw) {
+          // the fly stays out of reach, so he locks on (laser or Sith lightning) and reels it in
           const start = new T.Vector3(side * 3.3, 2.9, 1.5), far = new T.Vector3(side * 2, 2.55, 1.9);
           const flap = () => fly.userData.w.forEach((w, i) => { w.rotation.x = Math.sin(t * 70 + i * Math.PI) * .7; });
           tween(.8, p => { flap(); fly.position.lerpVectors(start, far, E(p)); fly.position.y += Math.sin(p * 18) * .06; fly.rotation.y = side > 0 ? Math.PI : 0; }, () => {
             ev && ev('zap');
-            tween(.2, p => { flap(); aimTractor(fly.position, 'laser', p); }, () => tractorEat(fly, false, ev));
+            tween(pw === 'lightning' ? .3 : .2, p => { flap(); aimPower(pw, fly.position, p); }, () => tractorEat(fly, pw === 'lightning', ev, pw));
           });
-          return 'tractor';
+          return pw;
         }
         const start = new T.Vector3(side * 3, 2.8, 1.4);
         const hover = () => mouthWorld(c).add(new T.Vector3(side * .35, .35, 1.25));
@@ -1141,14 +1232,15 @@
       setWind(w) { wind = +w || 0; },
       // cyborg tricks: fire the laser eye, or blast off on rocket boots
       laser() { if (!cyb.beam) return false; cyb.laserUntil = t + .9; return true; },
+      saber() { if (!cos.blade) return false; cos.saberUntil = t + 2.8; tween(.5, p => { fx.rz = Math.sin(p * Math.PI) * -.08; }); return true; },
       // a bug buzzes past; he zaps it with his laser, then tractor-beams it into his mouth
       zapBug(ev) {
-        if (!cyborgReady()) return false;
+        const pw = power(); if (!pw) return false;
         const fly = buildFly(); scene.add(fly);
         const side = Math.random() < .5 ? -1 : 1, a = new T.Vector3(side * 3.6, 3.2, .6), b = new T.Vector3(side * 1.7, 2.05 + Math.random() * .4, 1.9);
         tween(1.3, p => { fly.userData.w.forEach((w, i) => { w.rotation.x = Math.sin(t * 70 + i * Math.PI) * .7; }); fly.position.lerpVectors(a, b, E(p)); fly.position.y += Math.sin(p * 20) * .1; fly.position.x += Math.cos(p * 13) * .12; fly.rotation.y = side > 0 ? Math.PI : 0; }, () => {
           ev && ev('zap');
-          tween(.3, p => { aimTractor(fly.position, 'laser', Math.min(1, p * 3)); if (p > .4 && !fly.userData.zapped) { fly.userData.zapped = true; burst(fly.position.clone(), 10, .35); } }, () => tractorEat(fly, true, ev));
+          tween(.3, p => { aimPower(pw, fly.position, Math.min(1, p * 3)); if (pw === 'laser' && p > .4 && !fly.userData.zapped) { fly.userData.zapped = true; burst(fly.position.clone(), 10, .35); } }, () => tractorEat(fly, true, ev, pw));
         });
         return true;
       },
@@ -1163,7 +1255,7 @@
         const swap = (g, child) => { while (g.children.length) g.remove(g.children[0]); g.add(child); };
         swap(outfit.neck, buildNeck(o.neck)); swap(outfit.face, buildFace(o.face)); swap(outfit.feet, buildFeet(o.feet)); swap(outfit.brolly, buildBrolly(o.umbrella));
         if (o.face !== 'cyborg') { cyb.beam = cyb.glow = cyb.core = null; } if (o.feet !== 'rockets') cyb.flames = [];
-        swap(outfit.suit, buildSuit(o.face === 'cyborg'));
+        swap(outfit.suit, buildSuit(o.face));
       },
       eat(kind) {
         const c = creatures[keyOf(stage)]; if (!c.mouth) return;

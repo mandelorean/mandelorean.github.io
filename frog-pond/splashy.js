@@ -74,7 +74,7 @@
       }
       const fx = FX(), fr = FR();
       // cyborg suit: lock on to a bug ahead with the laser, then reel it into his mouth with a tractor beam
-      if (o.cyborg && !s.over) {
+      if ((o.cyborg || o.sith) && !s.over) {
         s.tbCool = Math.max(0, (s.tbCool || 0) - dt);
         if (s.tb && (s.tb.t.gone || s.tb.t.x < fx)) { s.tb = null; s.tbCool = .3; }
         if (!s.tb && s.tbCool <= 0) {
@@ -165,7 +165,26 @@
       const f = s.frog, r = FR(), rot = clamp(f.vy / (H * .8), -.45, .45), lx = r * .45, ly = -r * .68;
       return [FX() + Math.cos(rot) * lx - Math.sin(rot) * ly, f.y + Math.sin(rot) * lx + Math.cos(rot) * ly];
     }
+    function handPos() {
+      const f = s.frog, r = FR(), rot = clamp(f.vy / (H * .8), -.45, .45), lx = r * .75, ly = r * .62;
+      return [FX() + Math.cos(rot) * lx - Math.sin(rot) * ly, f.y + Math.sin(rot) * lx + Math.cos(rot) * ly];
+    }
+    // Sith lightning: a few jagged, flickering bolts from his hand to the bug
+    function drawLightning() {
+      const tb = s.tb; if (!tb || s.over) return;
+      const [hx, hy] = handPos(), t = tb.t, reach = Math.min(1, tb.age / .15), dx = (t.x - hx) * reach, dy = (t.y - hy) * reach, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      for (let b = 0; b < 3; b++) {
+        ctx.beginPath(); ctx.moveTo(hx, hy);
+        for (let i = 1; i <= 8; i++) { const q = i / 8, j = i === 8 ? 0 : (Math.random() - .5) * L * .22 * Math.sin(Math.PI * q); ctx.lineTo(hx + dx * q + nx * j, hy + dy * q + ny * j); }
+        ctx.strokeStyle = 'rgba(120,160,255,.35)'; ctx.lineWidth = H * .016; ctx.stroke();
+        ctx.strokeStyle = 'rgba(235,245,255,.95)'; ctx.lineWidth = H * .004; ctx.stroke();
+      }
+      if (reach >= 1) ell(t.x, t.y, H * (.03 + Math.random() * .015), H * (.03 + Math.random() * .015), 0, 'rgba(170,200,255,.4)');
+      ctx.restore();
+    }
     function drawBeam() {
+      if (o.sith) { drawLightning(); return; }
       const tb = s.tb; if (!tb || s.over) return;
       const [ex, ey] = eyePos(), t = tb.t, dx = t.x - ex, dy = t.y - ey, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, locked = tb.age > .15;
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
@@ -207,6 +226,19 @@
       ell(r * .54, -r * .66, r * .12, r * .14, 0, s.over ? '#fff' : '#15151b');
       if (s.over) { ctx.strokeStyle = '#15151b'; ctx.lineWidth = r * .06; ctx.beginPath(); ctx.moveTo(r * .35, -r * .78); ctx.lineTo(r * .6, -r * .55); ctx.moveTo(r * .6, -r * .78); ctx.lineTo(r * .35, -r * .55); ctx.stroke(); }
       if (o.cyborg) { ctx.beginPath(); ctx.arc(r * .45, -r * .68, r * .28, 0, TAU); ctx.strokeStyle = '#b9c3cd'; ctx.lineWidth = r * .1; ctx.stroke(); ell(r * .52, -r * .66, r * .09, r * .09, 0, '#ff2a2a'); }
+      if (o.cat) {
+        [[-.15, -.62], [.5, -.95]].forEach(([ex, ey]) => { ctx.beginPath(); ctx.moveTo(r * (ex - .2), r * (ey + .12)); ctx.lineTo(r * (ex + .02), r * (ey - .38)); ctx.lineTo(r * (ex + .25), r * (ey + .1)); ctx.closePath(); ctx.fillStyle = '#f2a65a'; ctx.fill(); ctx.beginPath(); ctx.moveTo(r * (ex - .1), r * (ey + .06)); ctx.lineTo(r * (ex + .02), r * (ey - .22)); ctx.lineTo(r * (ex + .14), r * (ey + .05)); ctx.closePath(); ctx.fillStyle = '#ffb3c6'; ctx.fill(); });
+        ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = Math.max(1, r * .04);
+        [-.12, 0, .12].forEach(dy => { ctx.beginPath(); ctx.moveTo(r * .8, r * (.0 + dy * .5)); ctx.lineTo(r * 1.35, r * (-.05 + dy)); ctx.stroke(); });
+        ell(r * 1.0, -r * .08, r * .07, r * .05, 0, '#ff7aa2');
+      }
+      if (o.sith) {
+        // a dark hood over his head and back, leaving his face free
+        ctx.beginPath(); ctx.moveTo(r * .95, -r * .2); ctx.quadraticCurveTo(r * .9, -r * 1.25, r * .1, -r * 1.2); ctx.quadraticCurveTo(-r * 1.0, -r * 1.1, -r * 1.2, r * .1);
+        ctx.quadraticCurveTo(-r * .9, -r * .55, -r * .1, -r * .85); ctx.quadraticCurveTo(r * .55, -r * 1.0, r * .7, -r * .25); ctx.closePath(); ctx.fillStyle = '#1c1820'; ctx.fill();
+        // and his eye peeping out from under it
+        ell(r * .45, -r * .68, r * .25, r * .25, 0, '#fff'); ell(r * .54, -r * .66, r * .12, r * .14, 0, '#15151b');
+      }
       if (o.hat === 'crown') { ctx.fillStyle = '#f5c542'; ctx.beginPath(); ctx.moveTo(-r * .2, -r * .7); ctx.lineTo(-r * .25, -r * 1.05); ctx.lineTo(-r * .05, -r * .85); ctx.lineTo(r * .1, -r * 1.1); ctx.lineTo(r * .2, -r * .8); ctx.closePath(); ctx.fill(); }
       // cheek and mouth (opens wide when he gobbles something)
       ell(r * .72, r * .05, r * .14, r * .09, 0, 'rgba(255,140,170,.8)');

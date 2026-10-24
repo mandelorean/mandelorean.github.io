@@ -82,6 +82,14 @@
     laser(t) { [0, .12, .24].forEach(d => tone('square', 1800, 260, t + d, .11, .07)); },
     rocket(t) { hiss(t, 2.2, 'lowpass', 300, 1600, .35, .8, .15); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600; tone('sawtooth', 60, 140, t, 2, .08, f); },
     tractor(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1100; const o = tone('sawtooth', 150, 330, t, 1.1, .07, f); wobble(o, t, 1.1, 14, 30); tone('sine', 600, 900, t, 1.1, .04); },
+    meow(t) { const a = tone('triangle', 560, 900, t, .16, .16); wobble(a, t, .16, 9, 20); const b = tone('triangle', 900, 470, t + .15, .32, .15); wobble(b, t + .15, .32, 7, 25); },
+    purr(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300; const o = tone('sawtooth', 48, 44, t, 1.2, .14, f); wobble(o, t, 1.2, 24, 8); },
+    lightning(t) {
+      for (let i = 0; i < 12; i++) hiss(t + i * .1 + Math.random() * .05, .07, 'highpass', 2200 + Math.random() * 2500, null, .22, .7, .002);
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1300; const o = tone('sawtooth', 95, 120, t, 1.3, .06, f); wobble(o, t, 1.3, 33, 45);
+    },
+    zap(t) { for (let i = 0; i < 4; i++) hiss(t + i * .06, .05, 'highpass', 2500 + Math.random() * 2000, null, .16, .7, .002); },
+    saber(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; const o = tone('sawtooth', 70, 115, t, 1.6, .1, f); wobble(o, t, 1.6, 6, 6); hiss(t, .25, 'bandpass', 600, 2400, .15, 1, .01); tone('sine', 220, 180, t + 2.2, .5, .05); },
     stroke(t) { tone('sine', 260, 520, t, .09, .12); hiss(t, .12, 'bandpass', 900, 1600, .08, 1.2, .01); },
     whoosh(t) { hiss(t, .7, 'bandpass', 400, 2400, .3, 1.5, .2); },
     zoom(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const o = tone('sawtooth', 180, 900, t, .7, .12, f); wobble(o, t, .7, 30, 20); },
