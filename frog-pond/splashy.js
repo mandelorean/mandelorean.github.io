@@ -74,7 +74,7 @@
       }
       const fx = FX(), fr = FR();
       // cyborg suit: lock on to a bug ahead with the laser, then reel it into his mouth with a tractor beam
-      if ((o.cyborg || o.sith) && !s.over) {
+      if ((o.cyborg || o.sith || o.starlord) && !s.over) {
         s.tbCool = Math.max(0, (s.tbCool || 0) - dt);
         if (s.tb && (s.tb.t.gone || s.tb.t.x < fx)) { s.tb = null; s.tbCool = .3; }
         if (!s.tb && s.tbCool <= 0) {
@@ -183,8 +183,24 @@
       if (reach >= 1) ell(t.x, t.y, H * (.03 + Math.random() * .015), H * (.03 + Math.random() * .015), 0, 'rgba(170,200,255,.4)');
       ctx.restore();
     }
+    // Star-Lord: two blaster shots fly out, then the bug floats in wrapped in an orange energy bubble
+    function drawBlast() {
+      const tb = s.tb; if (!tb || s.over) return;
+      const [hx, hy] = handPos(), t = tb.t;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      if (tb.age <= .15) {
+        [0, 1].forEach(i => { const q = clamp(tb.age / .15 * 1.3 - i * .3, 0, 1); if (q <= 0 || q >= 1) return; const x = hx + (t.x - hx) * q, y = hy + (t.y - hy) * q, a = Math.atan2(t.y - hy, t.x - hx);
+          ell(x, y, H * .022, H * .008, a, 'rgba(255,190,80,.95)'); ell(x, y, H * .035, H * .016, a, 'rgba(255,140,40,.35)'); });
+      } else {
+        const r = H * (.045 + Math.sin(s.t * 12) * .004);
+        ell(t.x, t.y, r, r, 0, 'rgba(255,150,60,.28)');
+        ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, TAU); ctx.strokeStyle = 'rgba(255,200,120,.8)'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.restore();
+    }
     function drawBeam() {
       if (o.sith) { drawLightning(); return; }
+      if (o.starlord) { drawBlast(); return; }
       const tb = s.tb; if (!tb || s.over) return;
       const [ex, ey] = eyePos(), t = tb.t, dx = t.x - ex, dy = t.y - ey, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, locked = tb.age > .15;
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
@@ -207,7 +223,7 @@
       if (f.hurt > 0 && !s.over && Math.floor(f.hurt * 10) % 2 === 0) ctx.globalAlpha = .35;
       ctx.save(); ctx.translate(x, y); ctx.rotate(s.over ? Math.PI * .9 : clamp(f.vy / (H * .8), -.45, .45));
       // rocket flame from the cyborg suit
-      if (o.cyborg && f.kick > 0) { ctx.beginPath(); ctx.moveTo(-r * 1.1, -r * .15); ctx.lineTo(-r * (1.6 + f.kick * 1.4 + Math.random() * .3), r * .1); ctx.lineTo(-r * 1.1, r * .35); ctx.fillStyle = '#ffb030'; ctx.fill(); }
+      if ((o.cyborg || o.starlord) && f.kick > 0) { ctx.beginPath(); ctx.moveTo(-r * 1.1, -r * .15); ctx.lineTo(-r * (1.6 + f.kick * 1.4 + Math.random() * .3), r * .1); ctx.lineTo(-r * 1.1, r * .35); ctx.fillStyle = '#ffb030'; ctx.fill(); }
       // back leg kicks out behind on each stroke
       const k = f.kick, la = .5 - k * .55, len = r * (.9 + k * .7);
       ctx.save(); ctx.translate(-r * .55, r * .3); ctx.rotate(Math.PI - la);
@@ -231,6 +247,11 @@
         ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = Math.max(1, r * .04);
         [-.12, 0, .12].forEach(dy => { ctx.beginPath(); ctx.moveTo(r * .8, r * (.0 + dy * .5)); ctx.lineTo(r * 1.35, r * (-.05 + dy)); ctx.stroke(); });
         ell(r * 1.0, -r * .08, r * .07, r * .05, 0, '#ff7aa2');
+      }
+      if (o.starlord) {
+        // Walkman headphones: a band over his head and an orange ear pad
+        ctx.beginPath(); ctx.arc(r * .05, -r * .35, r * .72, Math.PI * 1.05, Math.PI * 1.95); ctx.strokeStyle = '#9aa2ab'; ctx.lineWidth = r * .1; ctx.stroke();
+        ell(-r * .62, -r * .22, r * .2, r * .24, 0, '#9aa2ab'); ell(-r * .62, -r * .22, r * .15, r * .19, 0, '#ff8a2a');
       }
       if (o.sith) {
         // a dark hood over his head and back, leaving his face free

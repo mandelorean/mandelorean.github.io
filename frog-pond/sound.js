@@ -90,6 +90,18 @@
     },
     zap(t) { for (let i = 0; i < 4; i++) hiss(t + i * .06, .05, 'highpass', 2500 + Math.random() * 2000, null, .16, .7, .002); },
     saber(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; const o = tone('sawtooth', 70, 115, t, 1.6, .1, f); wobble(o, t, 1.6, 6, 6); hiss(t, .25, 'bandpass', 600, 2400, .15, 1, .01); tone('sine', 220, 180, t + 2.2, .5, .05); },
+    blaster(t) { [0, .13].forEach(d => { tone('sawtooth', 1100, 160, t + d, .15, .09); hiss(t + d, .08, 'bandpass', 3000, 900, .08, 1, .002); }); },
+    // a short funky 70s-style groove for Star-Lord's dancing
+    mixtape(t) {
+      const bass = [82.4, 82.4, 98, 110, 82.4, 82.4, 123.5, 110], lead = [329.6, 0, 392, 440, 0, 392, 329.6, 0], step = .21;
+      for (let bar = 0; bar < 2; bar++) bass.forEach((f, i) => {
+        const at = t + (bar * 8 + i) * step;
+        tone('triangle', f, f * 1.01, at, step * .9, .22);
+        if (lead[i]) { const o = tone('square', lead[i] * (bar ? 1.12 : 1), null, at, step * .7, .045); wobble(o, at, step * .7, 6, 4); }
+        if (i % 2) hiss(at, .05, 'highpass', 7000, null, .08, .7, .002);
+        if (i % 4 === 2) hiss(at, .12, 'bandpass', 1500, null, .18, .8, .003);
+      });
+    },
     stroke(t) { tone('sine', 260, 520, t, .09, .12); hiss(t, .12, 'bandpass', 900, 1600, .08, 1.2, .01); },
     whoosh(t) { hiss(t, .7, 'bandpass', 400, 2400, .3, 1.5, .2); },
     zoom(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const o = tone('sawtooth', 180, 900, t, .7, .12, f); wobble(o, t, .7, 30, 20); },
