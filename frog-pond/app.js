@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-24.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-24.2'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -81,6 +81,7 @@
   const PLAY = {
     flies: { title: 'Fly Catch', icon: 'pest_control', color: '#ea942f', desc: 'Tap the buzzy flies', want: 'Fancy a game of Fly Catch?' },
     swim: { title: 'Pond Swim', icon: 'pool', color: '#37aae3', desc: 'Grab flowers, dodge logs', want: 'Can we go for a swim?' },
+    splash: { title: 'Splashy Frog', icon: 'scuba_diving', color: '#1b8aa3', desc: 'Swim up, dodge newts, gobble bugs', want: 'Can we play Splashy Frog?' },
     memory: { title: 'Lily Memory', icon: 'grid_view', color: '#ef5f89', desc: 'Find the pairs', want: "Let's play Memory!" }
   };
   const QUIZ = {
@@ -337,6 +338,7 @@
     ['grown', 'All grown up', 'emoji_events', '#3FA45B', 'Grow into a frog', s => s.stage === 'frog'],
     ['catcher', 'Fly catcher', 'sports_esports', '#a780e6', 'Catch 10 flies in one game', s => (s.best.flies || 0) >= 10],
     ['waterbaby', 'Water baby', 'pool', '#37aae3', 'Score 25 in Pond Swim', s => (s.best.swim || 0) >= 25],
+    ['splashchamp', 'Splash champion', 'scuba_diving', '#1b8aa3', 'Score 30 in Splashy Frog', s => (s.best.splash || 0) >= 30],
     ['memory', 'Memory master', 'grid_view', '#ef5f89', 'Finish Memory in 9 goes', s => s.best.memory > 0 && s.best.memory <= 9],
     ['timesstar', 'Times star', 'calculate', '#a780e6', '3 stars on a times table', () => anyStars('tables:', 3)],
     ['timesall', 'Tables legend', 'military_tech', '#E5A50A', '3 stars on all 12 tables', s => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].every(t => (s.stars['tables:' + t] || 0) >= 3)],
@@ -909,10 +911,24 @@
     const g = { kind, phase: 'ready', score: 0 };
     if (kind === 'flies') Object.assign(g, { left: 20, flies: [] });
     if (kind === 'swim') Object.assign(g, { left: 30, lane: 1, hearts: 3, items: [], spawn: 0 });
+    if (kind === 'splash') { Object.assign(g, { hearts: 3, best: S.best.splash || 0 }); splashy = null; }
     if (QUIZ[kind]) g.phase = 'pick';
     if (kind === 'memory') Object.assign(g, { phase: 'run', moves: 0, open: [], matched: 0, cards: shuffle(MEM_ICONS.concat(MEM_ICONS)).map(([icon, color], i) => ({ i, icon, color, up: false, done: false })) });
     set({ sheet: 'game', game: g });
+    if (kind === 'splash') requestAnimationFrame(() => { makeSplashy(); splashy.draw(); });
   }
+  // Splashy Frog: the game itself lives in splashy.js and draws on a canvas
+  let splashy = null;
+  function makeSplashy() {
+    const c = COLOURS[S.colour] || COLOURS.green, g = S.game;
+    splashy = Splashy.create($('splashCanvas'), {
+      colour: c.body, belly: c.belly, spot: c.spot, cyborg: S.face === 'cyborg', hat: S.hat,
+      onEat: (p, k) => { g.score += p; sfx(k === 'golden' ? 'coin' : 'pop'); },
+      onHit: h => { g.hearts = h; bonk(); sfx('bonk'); },
+      onEnd: () => { if (S.game === g && g.phase === 'run') endGame(); }
+    });
+  }
+  function splashTap() { const g = S.game; if (!g || g.kind !== 'splash' || g.phase !== 'run' || !splashy) return; splashy.tap(); sfx('stroke'); }
   function loop(step) {
     t0 = tl = performance.now();
     const tick = now => {
@@ -927,13 +943,14 @@
   function endGame(extra) {
     stopGame(); const g = S.game; Object.assign(g, { phase: 'done' }, extra || {});
     g.coins = gameCoins(g); render();
-    sfx(g.kind === 'swim' && g.hearts <= 0 ? 'bonk' : 'fanfare');
+    sfx((g.kind === 'swim' || g.kind === 'splash') && g.hearts <= 0 ? 'bonk' : 'fanfare');
   }
   function gameCoins(g) {
     const sc = g.score || 0;
     // fun games pay a little; learning pays a lot
     if (g.kind === 'flies') return Math.min(6, Math.ceil(sc / 3));
     if (g.kind === 'swim') return Math.min(6, Math.floor(sc / 4));
+    if (g.kind === 'splash') return Math.min(6, Math.floor(sc / 5));
     if (g.kind === 'memory') return Math.max(2, 8 - Math.floor(g.moves / 3));
     const base = sc * 2 + [0, 2, 5, 10][g.stars || 0];
     return Math.round(base * (g.kind === 'tables' ? 1.5 : 1) * (g.bonus || 1));
@@ -942,6 +959,7 @@
     const g = S.game; sid = 0;
     if (g.kind === 'flies') { g.flies = [0, 1, 2, 3, 4].map(newFly); g.phase = 'run'; loop(flyStep); }
     if (g.kind === 'swim') { g.phase = 'run'; loop(swimStep); }
+    if (g.kind === 'splash') { if (!splashy) makeSplashy(); splashy.reset(); g.phase = 'run'; loop((g, dt) => splashy.step(dt)); }
     render();
   }
 
@@ -1066,6 +1084,7 @@
     let gifts = {}, line = '';
     if (kind === 'flies') { gifts = { fun: Math.min(70, 20 + sc * 5), energy: -6 }; line = sc >= 8 ? sc + ' flies! You are amazing!' : 'That was fun! Play again soon?'; S.best.flies = Math.max(S.best.flies || 0, sc); }
     if (kind === 'swim') { gifts = { fun: Math.min(60, 20 + sc * 3), clean: 20, energy: -10 }; line = 'Splish splash! I love swimming!'; S.best.swim = Math.max(S.best.swim || 0, sc); }
+    if (kind === 'splash') { gifts = { fun: Math.min(70, 20 + sc * 2), clean: 15, energy: -8 }; line = sc >= 30 ? sc + ' bugs! What a swimmer!' : sc >= 10 ? 'Splish splash! Yummy bugs!' : 'Those newts were tricky! Again?'; S.best.splash = Math.max(S.best.splash || 0, sc); }
     if (kind === 'memory') { gifts = { fun: Math.min(70, 25 + Math.max(0, 24 - sc) * 3), energy: -4 }; line = 'What a brilliant memory!'; S.best.memory = Math.min(S.best.memory || 99, g.moves); }
     if (QUIZ[kind]) { gifts = { fun: 15 + sc * 3, love: 10, energy: -4 }; line = sc >= 8 ? "You're a superstar!" : "Great practice! We'll get there."; }
     const w = S.want, wanted = w && w.kind === kind && (kind !== 'tables' || String(w.table) === g.key);
@@ -1350,6 +1369,7 @@
 
     $('memLayer').addEventListener('click', e => { const c = e.target.closest('.mcard'); if (c) flip(+c.dataset.i); });
 
+    $('splashLayer').addEventListener('pointerdown', e => { e.preventDefault(); splashTap(); });
     $('swimLayer').addEventListener('pointerdown', e => {
       const g = S.game; if (!g || g.phase !== 'run') return;
       e.preventDefault();
@@ -1359,6 +1379,7 @@
     document.addEventListener('keydown', e => {
       const g = S.game; if (!g || S.sheet !== 'game') return;
       if (g.kind === 'swim') { if (e.key === 'ArrowLeft') swimTo(-1); if (e.key === 'ArrowRight') swimTo(1); }
+      if (g.kind === 'splash' && (e.key === ' ' || e.key === 'ArrowUp')) { e.preventDefault(); splashTap(); }
       if (QUIZ[g.kind] && QUIZ[g.kind].keypad) {
         if (/^[0-9]$/.test(e.key)) keyIn(e.key);
         else if (e.key === 'Backspace') keyIn('del');
@@ -1605,7 +1626,7 @@
     text($('gameTitle'), G.title);
 
     // header chips
-    const icons = { flies: 'pest_control', swim: 'local_florist', memory: 'touch_app' };
+    const icons = { flies: 'pest_control', swim: 'local_florist', splash: 'pest_control', memory: 'touch_app' };
     text($('scoreIcon'), icons[g.kind] || 'check_circle'); text($('gameScore'), String(g.score || 0));
     show('scoreChip', !(quiz && g.phase === 'pick'));
     let tl = null;
@@ -1615,11 +1636,11 @@
 
     // layers
     show('flyLayer', g.kind === 'flies');
-    show('swimLayer', g.kind === 'swim');
+    show('swimLayer', g.kind === 'swim'); show('splashLayer', g.kind === 'splash');
     show('qPick', quiz && g.phase === 'pick');
     show('qRun', quiz && g.phase === 'run');
     show('memLayer', g.kind === 'memory' && g.phase !== 'done');
-    $('field').style.background = g.kind === 'swim' ? 'transparent' : '';
+    $('field').style.background = g.kind === 'swim' || g.kind === 'splash' ? 'transparent' : '';
 
     sprites($('flyLayer'), flyEls, g.kind === 'flies' ? g.flies : [],
       () => { const el = document.createElement('div'); el.className = 'fly'; el.innerHTML = '<span class="w1"></span><span class="w2"></span><span class="b"></span>'; return el; },
@@ -1690,8 +1711,10 @@
     const ready = g.phase === 'ready';
     show('gameReady', ready);
     if (ready) {
-      text($('readyTitle'), g.kind === 'swim' ? "Let's go swimming!" : 'Catch the flies!');
-      text($('readyText'), g.kind === 'swim' ? 'Tap left or right to swim. Grab flowers and bubbles, and dodge the logs!' : 'Tap as many flies as you can before time runs out. ' + name + ' is hungry for fun.');
+      text($('readyTitle'), g.kind === 'swim' ? "Let's go swimming!" : g.kind === 'splash' ? 'Splashy Frog!' : 'Catch the flies!');
+      text($('readyText'), g.kind === 'swim' ? 'Tap left or right to swim. Grab flowers and bubbles, and dodge the logs!'
+        : g.kind === 'splash' ? 'Tap to make ' + name + ' swim up. Let go and he sinks. Dodge the newts, lobsters and yucky sewage, and gobble up bugs for points!'
+        : 'Tap as many flies as you can before time runs out. ' + name + ' is hungry for fun.');
     }
     show('gameDone', g.phase === 'done');
     if (g.phase === 'done') {
@@ -1699,6 +1722,7 @@
       let big = String(sc), sub = '', extra = '';
       if (g.kind === 'flies') sub = sc >= 8 ? 'Super catcher!' : sc >= 1 ? 'Flies caught!' : 'Those flies were fast!';
       if (g.kind === 'swim') sub = g.hearts <= 0 ? 'Bonk! Too many logs. Flowers grabbed:' : sc >= 25 ? 'Super swimmer!' : 'Flowers and bubbles grabbed!';
+      if (g.kind === 'splash') { sub = sc > g.best && sc > 0 ? 'New best score! Bugs gobbled:' : 'Bonk! Out of hearts. Bugs gobbled:'; if (g.best && sc <= g.best) extra = 'Your best is ' + g.best + '.'; }
       if (g.kind === 'memory') { sub = (g.moves <= 9 ? 'Amazing memory!' : g.moves <= 14 ? 'Well done!' : 'You found them all!') + ' That took ' + g.moves + ' goes.'; big = '6/6'; }
       if (quiz) {
         big = sc + '/10';
@@ -1712,7 +1736,7 @@
     }
   }
 
-  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, cyborgTrick, state: () => S }; // test hook
+  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, cyborgTrick, openGame, state: () => S }; // test hook
 
   // ---------- Go ----------
   const iconsOk = () => document.documentElement.classList.add('icons-ok');
