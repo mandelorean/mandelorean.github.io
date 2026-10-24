@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-08.4'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-24.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -40,6 +40,7 @@
       ['bee', 'Bee antennae', 50, '#F5B915', 'emoji_nature', { need: s => (s.stars['spell:y56'] || 0) >= 3, needText: '3 stars at Year 5 and 6 spelling' }]],
     clothes: [['scarf', 'Woolly scarf', 25, '#E23B3B', 'checkroom', { slot: 'neck', note: 'Also puts it on when it’s cold' }], ['bowtie', 'Bow tie', 20, '#6F8CFF', 'style', { slot: 'neck' }],
       ['cape', 'Superhero cape', 30, '#E84545', 'bolt', { slot: 'neck' }], ['glasses', 'Maths glasses', 25, '#1F2A22', 'eyeglasses', { slot: 'face' }],
+      ['cyborg', 'Cyborg suit', 150, '#7a8a9a', 'smart_toy', { slot: 'face', note: 'Laser eye and rocket boots!' }],
       ['wellies', 'Wellies', 30, '#F5C542', 'water_drop', { auto: 'rain', note: 'Wears them when it rains where he is' }], ['umbrella', 'Umbrella', 35, '#FF5C8A', 'beach_access', { auto: 'rain', note: 'Uses it when it rains in Fleet' }]],
     colours: [],
     toys: [['ball', 'Beach ball', 25, '#FF6B6B', 'sports_volleyball'], ['wand', 'Bubble wand', 25, '#6fb6ff', 'bubble_chart'], ['kite', 'Kite', 35, '#a780e6', 'air'],
@@ -294,7 +295,7 @@
     if (!engine) return;
     const cold = coldNow(), wet = isRainy();
     engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(S.owned.bobble && cold ? 'bobble' : S.hat);
-    engine.setOutfit({ neck: S.owned.scarf && cold ? 'scarf' : S.neck, face: S.face, feet: S.owned.wellies && wet ? 'wellies' : 'none', umbrella: !!(S.owned.umbrella && wet) });
+    engine.setOutfit({ neck: S.owned.scarf && cold ? 'scarf' : S.neck, face: S.face, feet: S.face === 'cyborg' ? 'rockets' : S.owned.wellies && wet ? 'wellies' : 'none', umbrella: !!(S.owned.umbrella && wet) });
     engine.setWind(windKmh());
     const wl = windLevel();
     if (wl >= 2 && wl > windSaid && S.stage !== 'egg' && !S.asleep) setTimeout(() => { say(pick(["Ooh, it's blowy! Hold on to your hat!", 'Whoosh! The wind nearly blew me off my lily pad!', "Wheee! It's so windy in " + place().name + '!']), 3000); engine && engine.react('tickle'); }, 900);
@@ -494,10 +495,17 @@
 
   // ---------- Keeping busy: idle hops, look-arounds and nudges ----------
   let lastInteract = Date.now(), nextIdle = Date.now() + 15e3, nextNudge = Date.now() + 40e3;
+  // cyborg suit: now and then he fires his laser eye or blasts off on his rocket boots
+  function cyborgTrick(kind) {
+    if (!engine || S.face !== 'cyborg' || S.stage === 'tadpole' || S.asleep || S.away) return;
+    if ((kind || (Math.random() < .5 ? 'laser' : 'rocket')) === 'laser') { if (engine.laser()) { sfx('laser'); if (Math.random() < .4 && !S.toast) say(pick(['Pew pew!', 'Laser eye, activate!', 'Zap! Got that fly!']), 1800); } }
+    else if (engine.rocket()) { sfx('rocket'); if (!S.toast) say(pick(['Rocket boots, go!', 'Whoooosh! Up, up and away!', 'Three, two, one… blast off!']), 2200); }
+  }
   function maybeIdle(now) {
     if (quiet() || S.asleep || S.away) return;
     if (now >= nextIdle) {
       nextIdle = now + rand(12e3, 25e3);
+      if (S.face === 'cyborg' && Math.random() < .35) { cyborgTrick(); return; }
       const r = Math.random(); if (r < .4) engine.hop(); else if (r < .8) engine.lookAround(); else engine.react('pet');
       if (S.decor.duckling && Math.random() < .35) setTimeout(() => sfx('quack'), 600);
       if (S.scene === 'rainforest' && Math.random() < .3) { engine.shakeOff(); say('Shake shake! I’m drenched!', 2200); }
@@ -674,6 +682,7 @@
     engine && engine.react(tickle ? 'tickle' : 'pet'); sfx(tickle ? 'giggle' : 'ribbit');
     addHearts(); count('cuddles'); job('cuddle'); give({ love: 12 }, petN % 2 === 0 ? 1 : 0);
     if (tickle) earn(1);
+    if (S.face === 'cyborg' && Math.random() < .3) setTimeout(() => cyborgTrick('laser'), 500);
     if (Date.now() - jokeAt > 60e3 && Math.random() < .12) { nextJoke = Date.now() + rand(120e3, 240e3); setTimeout(() => { if (!quiet() && !S.asleep) tellJoke(); }, 3000); }
     say(tickle ? 'Hee hee! That tickles!' : pick(['Aww, I love cuddles.', 'More pats please!', 'You are my best friend.']));
     lock(tickle ? 800 : 650);
@@ -795,7 +804,7 @@
     const id = it.id;
     if (it.tab === 'hats') { set({ hat: id }); if (id !== 'none') say(pick(['Do I look fancy?', 'I love it!', 'So stylish!'])); }
     else if (it.tab === 'colours') { if (S.colour !== id) { set({ colour: id }); engine && engine.react('celebrate'); say(pick(['Ta-da! A whole new me!', 'Do you like my new colour?', 'Ooh, I feel fabulous!'])); if (id !== 'green') count('colours'); } }
-    else if (it.slot) { const on = S[it.slot] !== id || fresh; set({ [it.slot]: on ? id : 'none' }); if (on) say(pick(['How do I look?', 'Very smart!', 'I love it!'])); if (S.stage === 'tadpole') say("I'll wear it when I grow legs!"); }
+    else if (it.slot) { const on = S[it.slot] !== id || fresh; set({ [it.slot]: on ? id : 'none' }); if (on) { if (id === 'cyborg' && S.stage !== 'tadpole') { say('Beep boop! Cyborg frog activated!', 3000); setTimeout(cyborgTrick, 1200); } else say(pick(['How do I look?', 'Very smart!', 'I love it!'])); } if (S.stage === 'tadpole') say("I'll wear it when I grow legs!"); }
     else if (it.auto) say(it.note + '!', 2600);
     else if (it.scene) { if (S.scene !== id) { set({ scene: id }); say(pick(['Ooh, a new place!', 'Wow, look at this!', 'Off we go!']), 1300); enterScene(id); } }
     else { const on = fresh || !S.decor[id]; set({ decor: Object.assign({}, S.decor, { [id]: on }) }); if (on) say(pick(['Ooh, lovely!', 'My pond looks amazing!', 'Hello, friend!', 'Wow, thank you!'])); }
@@ -1703,7 +1712,7 @@
     }
   }
 
-  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, state: () => S }; // test hook
+  if (/[?&]debug\b/.test(location.search)) window.__fp = { playToy, loo, cyborgTrick, state: () => S }; // test hook
 
   // ---------- Go ----------
   const iconsOk = () => document.documentElement.classList.add('icons-ok');

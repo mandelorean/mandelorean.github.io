@@ -450,8 +450,12 @@
 
     // ---------- More shop things: clothes, treats, toys, pond upgrades, friends, big goals ----------
     const FRONT = (y) => Math.sqrt(Math.max(0, 1 - ((y - .9) / .88) ** 2)); // body depth at height y
-    const outfit = { neck: new T.Group(), face: new T.Group(), feet: new T.Group(), brolly: new T.Group() };
-    creatures.frog.g.add(outfit.neck, outfit.feet, outfit.brolly); creatures.frog.anchor.add(outfit.face);
+    const outfit = { neck: new T.Group(), face: new T.Group(), feet: new T.Group(), brolly: new T.Group(), suit: new T.Group() };
+    creatures.frog.g.add(outfit.neck, outfit.feet, outfit.brolly, outfit.suit);
+    // cyborg bits that animate: the laser beam and eye glow, the chest lights, the rocket flames
+    const cyb = { beam: null, glow: null, lights: [], flames: [], laserUntil: 0, rocketUntil: 0 };
+    const METAL = () => mat(0xb9c3cd, { metalness: .85, roughness: .28, clearcoat: .8 });
+    const GLOW = (c, i = 1.6) => mat(c, { emissive: c, emissiveIntensity: i, clearcoat: 1 }); creatures.frog.anchor.add(outfit.face);
     let outfitKey = '';
     function buildNeck(k) {
       const g = new T.Group();
@@ -471,7 +475,29 @@
       return g;
     }
     function buildFace(k) {
-      const g = new T.Group(); if (k !== 'glasses') return g;
+      const g = new T.Group();
+      if (k === 'cyborg') {
+        // a metal eyepiece over his right eye with a red laser lens, and a metal plate on that side of his head
+        const E = { x: .48, y: -.12, z: .74 }, metal = METAL(), dark = mat(0x2a2f36, { metalness: .6, roughness: .3 });
+        const ring = new T.Mesh(new T.TorusGeometry(.29, .07, 14, 36), metal); ring.position.set(E.x, E.y, E.z); g.add(ring);
+        const lens = new T.Mesh(new T.CylinderGeometry(.25, .25, .03, 32), dark); lens.rotation.x = Math.PI / 2; lens.position.set(E.x, E.y, E.z - .01); g.add(lens);
+        const core = sph(.09, GLOW(0xff2a2a, 2), 1, 1, .5, E.x, E.y, E.z + .02); g.add(core);
+        const plate = sph(.34, metal, .55, .9, .7, E.x + .34, E.y + .02, E.z - .42); g.add(plate);
+        [[.1, .22], [.1, -.18], [.36, .02]].forEach(([dx, dy]) => g.add(sph(.03, dark, 1, 1, 1, E.x + .28 + dx * .5, E.y + dy, E.z - .12)));
+        const ant = new T.Mesh(new T.CylinderGeometry(.015, .015, .32, 8), metal); ant.position.set(E.x + .42, E.y + .42, E.z - .45); ant.rotation.z = -.35; g.add(ant);
+        g.add(sph(.045, GLOW(0xff2a2a, 1.2), 1, 1, 1, E.x + .48, E.y + .58, E.z - .45));
+        // the laser: a beam that shoots out sideways and forwards, so you can see it from the front
+        const beamG = new T.Group(); beamG.position.set(E.x, E.y, E.z + .03);
+        beamG.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(1, -.08, .55).normalize());
+        const bm = new T.MeshBasicMaterial({ color: 0xff3030, transparent: true, opacity: .9, depthWrite: false });
+        const beam = new T.Mesh(new T.CylinderGeometry(.035, .035, 7, 10), bm); beam.position.y = 3.5; beamG.add(beam);
+        const halo = new T.Mesh(new T.CylinderGeometry(.09, .09, 7, 10), new T.MeshBasicMaterial({ color: 0xff7070, transparent: true, opacity: .25, depthWrite: false })); halo.position.y = 3.5; beamG.add(halo);
+        beamG.visible = false; g.add(beamG);
+        const glow = sph(.2, new T.MeshBasicMaterial({ color: 0xff5050, transparent: true, opacity: .55, depthWrite: false }), 1, 1, 1, E.x, E.y, E.z + .05); glow.visible = false; glow.castShadow = false; g.add(glow);
+        cyb.beam = beamG; cyb.glow = glow; cyb.core = core;
+        return g;
+      }
+      if (k !== 'glasses') return g;
       const L = { x: .48, y: -.1, z: .8, r: .27 }, frame = mat(0x1f2a22, { roughness: .3 }), glass = new T.MeshPhysicalMaterial({ color: 0xdff4ff, transparent: true, opacity: .25, roughness: 0, clearcoat: 1 });
       [-1, 1].forEach(s => {
         const lens = new T.Mesh(new T.CylinderGeometry(L.r, L.r, .02, 32), glass); lens.rotation.x = Math.PI / 2; lens.position.set(s * L.x, L.y, L.z); g.add(lens);
@@ -481,12 +507,41 @@
       return g;
     }
     function buildFeet(k) {
-      const g = new T.Group(); if (k !== 'wellies') return g;
+      const g = new T.Group();
+      if (k === 'rockets') {
+        // rocket boots: metal boots with an orange stripe and a nozzle, and flames that light up when he blasts off
+        const metal = METAL(), stripe = GLOW(0xff8a2a, .5), dark = mat(0x2a2f36, { metalness: .6, roughness: .3 });
+        const fm = new T.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: .9, depthWrite: false, blending: T.AdditiveBlending });
+        const fm2 = new T.MeshBasicMaterial({ color: 0xfff2a0, transparent: true, opacity: .95, depthWrite: false, blending: T.AdditiveBlending });
+        cyb.flames = [];
+        [[-.42, .84, .19], [.42, .84, .19], [-1.12, .5, .25], [1.12, .5, .25]].forEach(([x, z, r]) => {
+          const b = new T.Mesh(new T.CylinderGeometry(r, r * 1.1, .32, 20), metal); b.position.set(x, .2, z); b.castShadow = true; g.add(b);
+          const st = new T.Mesh(new T.CylinderGeometry(r * 1.03, r * 1.06, .06, 20), stripe); st.position.set(x, .24, z); g.add(st);
+          const n = new T.Mesh(new T.CylinderGeometry(r * .6, r * .85, .1, 16), dark); n.position.set(x, .0, z); g.add(n);
+          const f = new T.Group(); f.position.set(x, -.05, z);
+          const outer = new T.Mesh(new T.ConeGeometry(r * .7, .7, 14), fm); outer.rotation.x = Math.PI; outer.position.y = -.35; f.add(outer);
+          const inner = new T.Mesh(new T.ConeGeometry(r * .38, .4, 12), fm2); inner.rotation.x = Math.PI; inner.position.y = -.2; f.add(inner);
+          f.visible = false; g.add(f); cyb.flames.push(f);
+        });
+        return g;
+      }
+      if (k !== 'wellies') return g;
       const boot = mat(0xffcc33, { roughness: .3, clearcoat: .8 }), sole = mat(0x3b3b44);
       [[-.42, .84, .19], [.42, .84, .19], [-1.12, .5, .25], [1.12, .5, .25]].forEach(([x, z, r]) => {
         const b = new T.Mesh(new T.CylinderGeometry(r, r * 1.08, .3, 20), boot); b.position.set(x, .17, z); b.castShadow = true; g.add(b);
         const s = new T.Mesh(new T.CylinderGeometry(r * 1.12, r * 1.12, .05, 20), sole); s.position.set(x, .03, z); g.add(s);
       });
+      return g;
+    }
+    function buildSuit(on) {
+      const g = new T.Group(); cyb.lights = []; if (!on) return g;
+      // a metal chest panel on his side with three blinking lights
+      const metal = METAL(), panel = new T.Group();
+      panel.position.set(-.9, .66, .56); panel.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), new T.Vector3(-.75, -.3, .59).normalize());
+      const box = new T.Mesh(new T.BoxGeometry(.46, .36, .08), metal); box.castShadow = true; panel.add(box);
+      [[-.13, 0x3fd2ff], [0, 0x6dff8a], [.13, 0xff4d4d]].forEach(([x, c]) => { const l = sph(.045, GLOW(c, 1.5), 1, 1, .6, x, .06, .05); panel.add(l); cyb.lights.push(l); });
+      const slot = new T.Mesh(new T.BoxGeometry(.3, .04, .02), mat(0x2a2f36)); slot.position.set(0, -.08, .045); panel.add(slot);
+      g.add(panel);
       return g;
     }
     function buildBrolly(on) {
@@ -770,6 +825,13 @@
     const tmpV = new T.Vector3();
     function moreTick() {
       const x = extras;
+      if (cyb.beam) {
+        const on = t < cyb.laserUntil; cyb.beam.visible = on; cyb.glow.visible = on;
+        if (on) { const f = .7 + Math.sin(t * 60) * .3; cyb.beam.scale.set(f, 1, f); cyb.glow.scale.setScalar(.8 + f * .5); }
+        cyb.core.material.emissiveIntensity = on ? 4 : 1.4 + Math.sin(t * 3) * .5;
+      }
+      cyb.lights.forEach((l, i) => { l.material.emissiveIntensity = Math.sin(t * 2.2 + i * 2.1) > 0 ? 2.2 : .3; });
+      if (cyb.flames.length) { const on = t < cyb.rocketUntil; cyb.flames.forEach((f, i) => { f.visible = on; if (on) f.scale.set(1, .8 + Math.random() * .5 + Math.sin(t * 40 + i) * .1, 1); }); }
       // wind: the hat wobbles, and now and then a gust lifts it right up
       { const w = Math.max(0, Math.min(1, (wind - 15) / 40)), gust = Math.max(0, Math.sin(t * .6)) ** 16;
         hatWrap.rotation.z = w ? Math.sin(t * 6.3) * .06 * w + gust * .5 * w : 0; hatWrap.position.y = w ? gust * .18 * w : 0; }
@@ -1033,10 +1095,20 @@
         for (const k in extras) { const v = !!(on && on[k]); if (extras[k].visible !== v) { extras[k].visible = v; if (v) { const g = extras[k], s = g.scale.x || 1; tween(.6, p => g.scale.setScalar(Math.max(.001, s * elastic(p)))); } } } },
       setDaylight(m) { dayMul = m; lilyOpen = m >= 1.2 ? 1 : m >= .95 ? .55 : .08; },
       setWind(w) { wind = +w || 0; },
+      // cyborg tricks: fire the laser eye, or blast off on rocket boots
+      laser() { if (!cyb.beam) return false; cyb.laserUntil = t + .9; return true; },
+      rocket() {
+        if (!cyb.flames.length || stage === 'egg') return false;
+        cyb.rocketUntil = t + 2.5;
+        tween(2.6, p => { const up = p < .25 ? E(p / .25) : p < .75 ? 1 : 1 - E((p - .75) / .25); fx.y = up * .9 + (p > .25 && p < .75 ? Math.sin(p * 30) * .04 : 0); fx.sy = 1 + up * .05; });
+        return true;
+      },
       setOutfit(o) {
         const key = JSON.stringify(o); if (key === outfitKey) return; outfitKey = key;
         const swap = (g, child) => { while (g.children.length) g.remove(g.children[0]); g.add(child); };
         swap(outfit.neck, buildNeck(o.neck)); swap(outfit.face, buildFace(o.face)); swap(outfit.feet, buildFeet(o.feet)); swap(outfit.brolly, buildBrolly(o.umbrella));
+        if (o.face !== 'cyborg') { cyb.beam = cyb.glow = cyb.core = null; } if (o.feet !== 'rockets') cyb.flames = [];
+        swap(outfit.suit, buildSuit(o.face === 'cyborg'));
       },
       eat(kind) {
         const c = creatures[keyOf(stage)]; if (!c.mouth) return;

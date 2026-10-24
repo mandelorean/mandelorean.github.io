@@ -79,6 +79,8 @@
     },
     boing(t) { const o = tone('sine', 140, 420, t, .25, .35); wobble(o, t, .25, 18, 40); },
     slurp(t) { hiss(t, .5, 'bandpass', 600, 1800, .25, 3, .05); tone('sine', 300, 700, t + .1, .35, .08); },
+    laser(t) { [0, .12, .24].forEach(d => tone('square', 1800, 260, t + d, .11, .07)); },
+    rocket(t) { hiss(t, 2.2, 'lowpass', 300, 1600, .35, .8, .15); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600; tone('sawtooth', 60, 140, t, 2, .08, f); },
     whoosh(t) { hiss(t, .7, 'bandpass', 400, 2400, .3, 1.5, .2); },
     zoom(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const o = tone('sawtooth', 180, 900, t, .7, .12, f); wobble(o, t, .7, 30, 20); },
     quack(t) { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 2; tone('sawtooth', 480, 330, t, .16, .4, f); },
