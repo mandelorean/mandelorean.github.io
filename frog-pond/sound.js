@@ -102,6 +102,9 @@
         if (i % 4 === 2) hiss(at, .12, 'bandpass', 1500, null, .18, .8, .003);
       });
     },
+    spell(t) { [1046.5, 1318.5, 1568, 2093, 2637].forEach((f, i) => tone('sine', f, f * 1.01, t + i * .055, .25, .07)); hiss(t, .45, 'highpass', 6000, 9000, .05, .7, .02); },
+    owl(t) { [0, .45, .62].forEach((d, i) => { const o = tone('sine', i ? 400 : 430, i ? 360 : 390, t + d, i ? .14 : .3, .2); wobble(o, t + d, .3, 5, 6); }); },
+    snitch(t) { const o = tone('sine', 2400, 2600, t, .8, .03); wobble(o, t, .8, 40, 300); },
     stroke(t) { tone('sine', 260, 520, t, .09, .12); hiss(t, .12, 'bandpass', 900, 1600, .08, 1.2, .01); },
     whoosh(t) { hiss(t, .7, 'bandpass', 400, 2400, .3, 1.5, .2); },
     zoom(t) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; const o = tone('sawtooth', 180, 900, t, .7, .12, f); wobble(o, t, .7, 30, 20); },

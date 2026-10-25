@@ -41,7 +41,7 @@
     function spawnFood() {
       const r = Math.random(), x = W + H * .1;
       let k, y;
-      if (r < .05) { k = 'golden'; y = TOP() + H * .12 + Math.random() * (BED() - TOP() - H * .25); }
+      if (r < (o.wizard ? .08 : .05)) { k = 'golden'; y = TOP() + H * .12 + Math.random() * (BED() - TOP() - H * .25); }
       else if (r < .4) { k = 'fly'; y = TOP() + H * .04 + Math.random() * H * .2; }
       else if (r < .78) { k = 'worm'; y = TOP() + H * .15 + Math.random() * (BED() - TOP() - H * .28); }
       else { k = 'snail'; y = BED() - H * .025; }
@@ -74,7 +74,7 @@
       }
       const fx = FX(), fr = FR();
       // cyborg suit: lock on to a bug ahead with the laser, then reel it into his mouth with a tractor beam
-      if ((o.cyborg || o.sith || o.starlord) && !s.over) {
+      if ((o.cyborg || o.sith || o.starlord || o.wizard) && !s.over) {
         s.tbCool = Math.max(0, (s.tbCool || 0) - dt);
         if (s.tb && (s.tb.t.gone || s.tb.t.x < fx)) { s.tb = null; s.tbCool = .3; }
         if (!s.tb && s.tbCool <= 0) {
@@ -102,7 +102,7 @@
         if (!pts.some(([x, y]) => (x - fx) ** 2 + (y - f.y) ** 2 < rr * rr)) return;
         if (t.food) {
           t.gone = true; f.eat = 1; o.onEat && o.onEat(t.pts, t.k);
-          s.pops.push({ x: t.x, y: t.y, text: '+' + t.pts, life: 1, gold: t.k === 'golden' });
+          s.pops.push({ x: t.x, y: t.y, text: t.k === 'golden' && o.wizard ? 'Snitch! +' + t.pts : '+' + t.pts, life: 1, gold: t.k === 'golden' });
         } else if (f.hurt <= 0) {
           f.hurt = 1.6; s.hearts--; f.vy = -H * .25;
           s.pops.push({ x: fx, y: f.y - fr, text: t.k === 'sewage' ? 'Yuck!' : t.k === 'lobster' ? 'Pinch!' : 'Ouch!', life: 1.1, bad: true });
@@ -198,7 +198,20 @@
       }
       ctx.restore();
     }
+    // Accio! a stream of golden sparkles from the wand, swirling round the bug as it's summoned
+    function drawSpell() {
+      const tb = s.tb; if (!tb || s.over) return;
+      const [hx, hy] = handPos(), t = tb.t, reach = Math.min(1, tb.age / .15);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 16; i++) {
+        const q = ((i / 16) + s.t * 1.6) % 1 * reach, x = hx + (t.x - hx) * q + (Math.random() - .5) * H * .012, y = hy + (t.y - hy) * q + Math.sin(q * 10 + s.t * 9) * H * .01;
+        ell(x, y, H * .006, H * .006, 0, i % 3 ? 'rgba(255,215,80,.95)' : 'rgba(255,255,255,.95)');
+      }
+      if (reach >= 1) for (let i = 0; i < 6; i++) { const a = s.t * 8 + i * 1.05, r = H * .04; ell(t.x + Math.cos(a) * r, t.y + Math.sin(a) * r, H * .006, H * .006, 0, 'rgba(255,230,120,.95)'); }
+      ctx.restore();
+    }
     function drawBeam() {
+      if (o.wizard) { drawSpell(); return; }
       if (o.sith) { drawLightning(); return; }
       if (o.starlord) { drawBlast(); return; }
       const tb = s.tb; if (!tb || s.over) return;
@@ -247,6 +260,14 @@
         ctx.strokeStyle = '#2b2b33'; ctx.lineWidth = Math.max(1, r * .04);
         [-.12, 0, .12].forEach(dy => { ctx.beginPath(); ctx.moveTo(r * .8, r * (.0 + dy * .5)); ctx.lineTo(r * 1.35, r * (-.05 + dy)); ctx.stroke(); });
         ell(r * 1.0, -r * .08, r * .07, r * .05, 0, '#ff7aa2');
+      }
+      if (o.wizard) {
+        // Gryffindor scarf, a wand, a lightning scar and round glasses
+        // the end of his scarf streams out behind him as he swims
+        for (let i = 0; i < 7; i++) { const x = -r * (.55 + i * .17), y = -r * .05 + Math.sin(s.t * 8 - i * .9) * r * .08 * (i / 3); ell(x, y, r * .1, r * .13, 0, i % 2 ? '#f2b01e' : '#8a1c1c'); }
+        ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = Math.max(1.5, r * .08); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * .6, r * .7); ctx.lineTo(r * .95, r * .55); ctx.stroke();
+        ctx.strokeStyle = '#b8323f'; ctx.lineWidth = Math.max(1, r * .05); ctx.beginPath(); ctx.moveTo(r * .02, -r * .62); ctx.lineTo(r * .12, -r * .5); ctx.lineTo(r * .02, -r * .44); ctx.lineTo(r * .12, -r * .32); ctx.stroke();
+        ctx.beginPath(); ctx.arc(r * .45, -r * .68, r * .3, 0, TAU); ctx.strokeStyle = '#1b1b22'; ctx.lineWidth = Math.max(1, r * .05); ctx.stroke();
       }
       if (o.starlord) {
         // Walkman headphones: a band over his head and an orange ear pad
@@ -334,6 +355,13 @@
         ell(r * .2, -r * .15, r * .62, r * .58, 0, '#c77a3c');
         ctx.beginPath(); for (let i = 0; i < 30; i++) { const a = i * .45, rr = r * .5 * (1 - i / 32); ctx.lineTo(r * .2 + Math.cos(a) * rr, -r * .15 + Math.sin(a) * rr); }
         ctx.strokeStyle = '#8a4e20'; ctx.lineWidth = r * .09; ctx.stroke();
+      } else if (t.k === 'golden' && o.wizard) {
+        // the Golden Snitch, wings a-blur
+        const gl = ctx.createRadialGradient(0, 0, r * .2, 0, 0, r * 1.5); gl.addColorStop(0, 'rgba(255,230,120,.6)'); gl.addColorStop(1, 'rgba(255,230,120,0)');
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, TAU); ctx.fill();
+        const fl = Math.abs(Math.sin(t.ph * 40));
+        [-1, 1].forEach(sd => ell(sd * r * .75, -r * .15, r * .6, r * .16 + fl * r * .12, sd * -.35, 'rgba(240,240,250,.85)'));
+        ell(0, 0, r * .42, r * .42, 0, '#f5c542'); ell(-r * .12, -r * .14, r * .14, r * .1, 0, '#fff3b0');
       } else if (t.k === 'golden') {
         const gl = ctx.createRadialGradient(0, 0, r * .2, 0, 0, r * 1.6); gl.addColorStop(0, 'rgba(255,230,120,.7)'); gl.addColorStop(1, 'rgba(255,230,120,0)');
         ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, r * 1.6, 0, TAU); ctx.fill();

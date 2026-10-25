@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-24.5'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-25.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -42,6 +42,7 @@
       ['cape', 'Superhero cape', 30, '#E84545', 'bolt', { slot: 'neck' }], ['glasses', 'Maths glasses', 25, '#1F2A22', 'eyeglasses', { slot: 'face' }],
       ['cyborg', 'Cyborg suit', 150, '#7a8a9a', 'smart_toy', { slot: 'face', note: 'Laser eye and rocket boots!' }],
       ['cat', 'Cat costume', 80, '#F2A65A', 'pets', { slot: 'face', note: 'Ears, whiskers, paws and a swishy tail. Miaow!' }],
+      ['wizard', 'Harry Potter outfit', 150, '#7a1b1b', 'auto_fix_high', { slot: 'face', note: 'Round glasses, a scar, a Gryffindor scarf and a wand. Accio fly!' }],
       ['starlord', 'Star-Lord outfit', 150, '#8a2f22', 'headphones', { slot: 'face', note: 'Red coat, headphones, blaster and jet boots. He dances too!' }],
       ['sith', 'Sith robe', 150, '#2a1f2e', 'flash_on', { slot: 'face', note: 'Hooded robe, red lightsaber and lightning that catches flies!' }],
       ['wellies', 'Wellies', 30, '#F5C542', 'water_drop', { auto: 'rain', note: 'Wears them when it rains where he is' }], ['umbrella', 'Umbrella', 35, '#FF5C8A', 'beach_access', { auto: 'rain', note: 'Uses it when it rains in Fleet' }]],
@@ -522,6 +523,19 @@
       if (!S.toast) say(pick(['Miaow!', 'Purrrrr…', 'Miaow! Oops, I mean ribbit.', 'I could really go for a fish. Miaow!', 'Hiss! Only joking. Purr.']), 2000);
       return;
     }
+    if (S.face === 'wizard') {
+      const night = skyPhase() === 'night' && !FANTASY[S.scene];
+      const k = kind || pick(['accio', 'accio', 'snitch', 'owl', 'leviosa'].concat(night ? ['lumos'] : []));
+      if (k === 'lumos') { engine.react('pet'); sfx('spell'); if (!S.toast) say(pick(['Lumos! Now I can see in the dark.', 'Lumos! Ooh, look at the floating candles.']), 2400); }
+      else if (k === 'snitch') { if (engine.snitch(() => { sfx('coin'); earn(1); if (!S.toast) say(pick(['I caught the Golden Snitch!', 'Got the Snitch! 150 points to Gryffindor!']), 2600); })) { sfx('snitch'); if (!S.toast) say('Look! The Golden Snitch!', 2000); } }
+      else if (k === 'owl') { sfx('owl'); if (!S.toast) say('Ooh, an owl!', 1800); engine.owl(() => { if (!S.toast) say(pick(['A letter from Hogwarts! I’ve been accepted!', 'Post! I’m going to Hogwarts School of Witchcraft and Frogcraft!']), 3400); sfx('fanfare'); }); }
+      else if (k === 'leviosa') { if (engine.leviosa()) { sfx('spell'); if (!S.toast) say(pick(['Wingardium Leviosa!', "It's levi-O-sa, not levio-SAH!"]), 2600); } }
+      else engine.zapBug(ev => {
+        if (ev === 'zap') { sfx('spell'); if (!S.toast) say(pick(['Accio fly!', 'Accio!', 'Expelliarmus! Oops, I mean… Accio fly!']), 1800); }
+        if (ev === 'gulp') { sfx('crunch'); give({ food: 5 }); if (!S.toast) say(pick(['Ten points to Gryffindor! Yum!', 'Magic snack!', 'Mischief managed. Crunch!']), 1800); }
+      });
+      return;
+    }
     if (S.face === 'starlord') {
       const k = kind || pick(['dance', 'blast', 'blast', 'jet']);
       if (k === 'dance') { engine.dance(); sfx('mixtape'); if (!S.toast) say(pick(['Time for my awesome mix!', 'Dance-off, bro!', 'This song is a total classic!']), 2600); }
@@ -544,7 +558,7 @@
     if (quiet() || S.asleep || S.away) return;
     if (now >= nextIdle) {
       nextIdle = now + rand(12e3, 25e3);
-      if (['cyborg', 'cat', 'sith', 'starlord'].includes(S.face) && Math.random() < .35) { costumeTrick(); return; }
+      if (['cyborg', 'cat', 'sith', 'starlord', 'wizard'].includes(S.face) && Math.random() < .35) { costumeTrick(); return; }
       const r = Math.random(); if (r < .4) engine.hop(); else if (r < .8) engine.lookAround(); else engine.react('pet');
       if (S.decor.duckling && Math.random() < .35) setTimeout(() => sfx('quack'), 600);
       if (S.scene === 'rainforest' && Math.random() < .3) { engine.shakeOff(); say('Shake shake! I’m drenched!', 2200); }
@@ -677,6 +691,7 @@
       sfx('crunch'); S.potty += POTTY_PER_MEAL; count('feeds'); job('feed');
       give({ food: 30 }, 1); earn(1);
       say(S.face === 'cyborg' ? pick(['Tractor beam: success! Yum!', 'Beep boop… delicious!', 'Gotcha! Crunchy cyborg snack!'])
+        : S.face === 'wizard' ? pick(['Accio fly! Yum!', 'Ten points to Gryffindor!', 'Magic! And crunchy!'])
         : S.face === 'starlord' ? pick(['Blasted it! Yum!', 'Star-Lord snack time!', 'Legendary… and crunchy!'])
         : S.face === 'sith' ? pick(['The fly is mine! Yum!', 'Lightning snack! Delicious.', 'Most impressive… and crunchy!'])
         : S.face === 'cat' ? pick(['Miaow-licious!', 'Purrfect! Thank you!', 'Yum! A cat that eats flies!'])
@@ -687,11 +702,11 @@
     // (and in the Sith robe he grabs it with crackling lightning)
     const how = engine && engine.feed(ev => {
       if (ev === 'mask') sfx('flip');
-      if (ev === 'zap') sfx(S.face === 'sith' ? 'lightning' : S.face === 'starlord' ? 'blaster' : 'laser');
+      if (ev === 'zap') { sfx(S.face === 'sith' ? 'lightning' : S.face === 'starlord' ? 'blaster' : S.face === 'wizard' ? 'spell' : 'laser'); if (S.face === 'wizard') say('Accio fly!', 1500); }
       if (ev === 'tractor' && S.face === 'cyborg') sfx('tractor');
       if (ev === 'gulp') fed();
     });
-    if (how === 'laser' || how === 'lightning' || how === 'blaster') lock(3000); else { lock(1700); setTimeout(fed, 1300); }
+    if (how === 'laser' || how === 'lightning' || how === 'blaster' || how === 'spell') lock(3000); else { lock(1700); setTimeout(fed, 1300); }
   }
   function bath() {
     if (!canAct()) return;
@@ -860,6 +875,10 @@
     else if (it.tab === 'colours') { if (S.colour !== id) { set({ colour: id }); engine && engine.react('celebrate'); say(pick(['Ta-da! A whole new me!', 'Do you like my new colour?', 'Ooh, I feel fabulous!'])); if (id !== 'green') count('colours'); } }
     else if (it.slot) { const on = S[it.slot] !== id || fresh; set({ [it.slot]: on ? id : 'none' }); if (on) { if (id === 'cyborg' && S.stage !== 'tadpole') { say('Beep boop! Cyborg frog activated!', 3000); setTimeout(cyborgTrick, 1200); }
       else if (id === 'cat' && S.stage !== 'tadpole') { say('Miaow! I mean… ribbit!', 3000); setTimeout(() => sfx('meow'), 300); }
+      else if (id === 'wizard' && S.stage !== 'tadpole') {
+        say('Hmm… the Sorting Hat says…', 2200); sfx('spell');
+        setTimeout(() => { if (S.face !== 'wizard') return; say('GRYFFINDOR!', 2600); sfx('fanfare'); engine && engine.react('celebrate'); }, 2300);
+      }
       else if (id === 'starlord' && S.stage !== 'tadpole') { say("I'm Star-Lord! Legendary pond outlaw!", 3200); setTimeout(() => costumeTrick('dance'), 1200); }
       else if (id === 'sith' && S.stage !== 'tadpole') { say('Come to the dark side… we have flies!', 3200); setTimeout(() => costumeTrick('saber'), 1200); } else say(pick(['How do I look?', 'Very smart!', 'I love it!'])); } if (S.stage === 'tadpole') say("I'll wear it when I grow legs!"); }
     else if (it.auto) say(it.note + '!', 2600);
@@ -977,9 +996,9 @@
   function makeSplashy() {
     const c = COLOURS[S.colour] || COLOURS.green, g = S.game;
     splashy = Splashy.create($('splashCanvas'), {
-      colour: c.body, belly: c.belly, spot: c.spot, cyborg: S.face === 'cyborg', sith: S.face === 'sith', cat: S.face === 'cat', starlord: S.face === 'starlord', hat: ['cat', 'sith', 'starlord'].includes(S.face) ? 'none' : S.hat,
+      colour: c.body, belly: c.belly, spot: c.spot, cyborg: S.face === 'cyborg', sith: S.face === 'sith', cat: S.face === 'cat', starlord: S.face === 'starlord', wizard: S.face === 'wizard', hat: ['cat', 'sith', 'starlord'].includes(S.face) ? 'none' : S.hat,
       onEat: (p, k) => { g.score += p; sfx(k === 'golden' ? 'coin' : 'pop'); },
-      onBeam: () => sfx(S.face === 'sith' ? 'zap' : S.face === 'starlord' ? 'blaster' : 'laser'),
+      onBeam: () => sfx(S.face === 'sith' ? 'zap' : S.face === 'starlord' ? 'blaster' : S.face === 'wizard' ? 'spell' : 'laser'),
       onHit: h => { g.hearts = h; bonk(); sfx('bonk'); },
       onEnd: () => { if (S.game === g && g.phase === 'run') endGame(); }
     });

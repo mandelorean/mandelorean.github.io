@@ -491,6 +491,22 @@
         g.add(sph(.075, mat(0xff7aa2, { clearcoat: 1 }), 1.3, .8, .8, 0, -.47, 1.0));
         return g;
       }
+      if (k === 'wizard') {
+        // round wire glasses and a lightning-bolt scar on his forehead
+        const L = { x: .48, y: -.12, z: .74, r: .29 }, wire = mat(0x1b1b22, { roughness: .3 }), glass = new T.MeshPhysicalMaterial({ color: 0xeaf6ff, transparent: true, opacity: .18, roughness: 0, clearcoat: 1 });
+        [-1, 1].forEach(sd => {
+          const lens = new T.Mesh(new T.CylinderGeometry(L.r, L.r, .015, 32), glass); lens.rotation.x = Math.PI / 2; lens.position.set(sd * L.x, L.y, L.z); g.add(lens);
+          const rim = new T.Mesh(new T.TorusGeometry(L.r, .022, 8, 40), wire); rim.position.set(sd * L.x, L.y, L.z + .01); g.add(rim);
+          const arm = new T.Mesh(new T.CylinderGeometry(.015, .015, .6, 6), wire); arm.rotation.x = Math.PI / 2; arm.position.set(sd * (L.x + L.r), L.y + .02, L.z - .3); g.add(arm);
+        });
+        const bridge = new T.Mesh(new T.TorusGeometry(.1, .02, 6, 12, Math.PI), wire); bridge.position.set(0, L.y + .02, L.z + .03); g.add(bridge);
+        const scarM = mat(0xb8323f, { roughness: .6, clearcoat: .2 }), pts = [[-.05, .12], [.06, .03], [-.04, -.02], [.07, -.13]];
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = new T.Vector3(.1 + pts[i][0], -.36 + pts[i][1], .85), b = new T.Vector3(.1 + pts[i + 1][0], -.36 + pts[i + 1][1], .85), d = b.clone().sub(a);
+          const seg = new T.Mesh(new T.CylinderGeometry(.018, .018, d.length() + .02, 6), scarM); seg.position.copy(a).addScaledVector(d, .5); seg.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); g.add(seg);
+        }
+        return g;
+      }
       if (k === 'starlord') {
         // Walkman headphones over his head, and a mask with glowing red eyes that snaps on when he goes hunting
         const band = new T.Mesh(new T.TorusGeometry(.98, .045, 10, 40, Math.PI), METAL()); band.position.set(0, -.42, -.18); band.scale.set(1, .78, 1); g.add(band);
@@ -585,9 +601,31 @@
       return g;
     }
     // costume parts that animate: the cat's tail, the Sith's lightsaber and lightning hand
-    const cos = { kind: null, tail: null, blade: null, hand: null, mask: null, saberUntil: 0, saberLen: 0 };
+    const cos = { kind: null, tail: null, blade: null, hand: null, mask: null, tipGlow: null, lumos: null, castUntil: 0, saberUntil: 0, saberLen: 0 };
     function buildSuit(kind) {
-      const g = new T.Group(); cyb.lights = []; cos.tail = cos.blade = cos.hand = null; cos.kind = kind;
+      const g = new T.Group(); cyb.lights = []; cos.tail = cos.blade = cos.hand = cos.tipGlow = cos.lumos = null; cos.kind = kind;
+      if (kind === 'wizard') {
+        // a black school robe, a red-and-gold striped scarf, and a wand in his hand
+        const robe = mat(0x1a1a22, { roughness: .8, clearcoat: 0, side: T.DoubleSide });
+        const cloak = new T.Mesh(new T.CylinderGeometry(1.13, 1.4, 1.15, 44, 1, true, Math.PI / 2 - .3, Math.PI + .6), robe); cloak.position.y = .7; cloak.castShadow = true; g.add(cloak);
+        const stripes = horiz => { const c = document.createElement('canvas'); c.width = horiz ? 8 : 64; c.height = horiz ? 64 : 8; const x = c.getContext('2d');
+          for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#f2b01e' : '#8a1c1c'; if (horiz) x.fillRect(0, i * 8, 8, 8); else x.fillRect(i * 8, 0, 8, 8); }
+          const tx = new T.CanvasTexture(c); tx.wrapS = tx.wrapT = T.RepeatWrapping; if ('colorSpace' in tx) tx.colorSpace = T.SRGBColorSpace; return tx; };
+        const ringTex = stripes(false); ringTex.repeat.set(7, 1);
+        const scarfM = new T.MeshPhysicalMaterial({ map: ringTex, roughness: .9 });
+        const ring = new T.Mesh(new T.TorusGeometry(1, .13, 14, 48), scarfM); ring.rotation.x = Math.PI / 2; ring.scale.set(1.17, 1.03, 1); ring.position.y = .86; ring.castShadow = true; g.add(ring);
+        const tailM = new T.MeshPhysicalMaterial({ map: stripes(true), roughness: .9 });
+        [[-.42, -.12], [-.2, .08]].forEach(([x, rz]) => { const tl = new T.Mesh(new T.BoxGeometry(.22, .62, .06), tailM); tl.position.set(x, .52, FRONT(.62) * 1.02 + .06); tl.rotation.z = rz; g.add(tl); });
+        const wand = new T.Group(); wand.position.set(1.0, .72, .82); wand.rotation.set(-.9, 0, -.45);
+        const wood = mat(0x6b4a2a, { roughness: .55, clearcoat: .3 });
+        const handle = new T.Mesh(new T.CylinderGeometry(.045, .04, .18, 10), mat(0x4a3018, { roughness: .5 })); wand.add(handle);
+        const shaft = new T.Mesh(new T.CylinderGeometry(.018, .035, .55, 10), wood); shaft.position.y = .36; wand.add(shaft);
+        const tip = new T.Object3D(); tip.position.y = .64; wand.add(tip);
+        const glow = sph(.07, new T.MeshBasicMaterial({ color: 0xfff4c8, transparent: true, opacity: .9, depthWrite: false, blending: T.AdditiveBlending }), 1, 1, 1, 0, .64, 0); glow.visible = false; glow.castShadow = false; wand.add(glow);
+        const lumos = new T.PointLight(0xfff0c0, 0, 4); lumos.position.y = .7; wand.add(lumos);
+        g.add(wand); cos.hand = tip; cos.tipGlow = glow; cos.lumos = lumos;
+        return g;
+      }
       if (kind === 'starlord') {
         // a long red leather coat, a Walkman on his hip, and a blaster in his hand
         const leather = mat(0x7a2d22, { roughness: .5, clearcoat: .35, side: T.DoubleSide });
@@ -919,6 +957,15 @@
       }
     };
     const tmpV = new T.Vector3();
+    // floating candles over the pond at night (wizard outfit)
+    const candles = new T.Group(); candles.visible = false; scene.add(candles);
+    [[-2.8, 2.2, -1.6], [-1.7, 2.6, -2.3], [-.5, 2.85, -2.6], [.8, 2.7, -2.5], [2.0, 2.45, -2.1], [3.0, 2.05, -1.3], [-3.3, 1.7, -.4]].forEach(([x, y, z], i) => {
+      const c = new T.Group(); c.position.set(x, y, z); c.userData = { y, ph: i * 1.3 };
+      c.add(new T.Mesh(new T.CylinderGeometry(.07, .07, .4, 12), mat(0xfff6e0, { roughness: .6 })));
+      const fl = new T.Mesh(new T.ConeGeometry(.045, .14, 10), new T.MeshBasicMaterial({ color: 0xffc04a, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false })); fl.position.y = .28; c.add(fl);
+      c.add(sph(.12, new T.MeshBasicMaterial({ color: 0xffe0a0, transparent: true, opacity: .25, blending: T.AdditiveBlending, depthWrite: false }), 1, 1, 1, 0, .28, 0));
+      candles.add(c);
+    });
     function moreTick() {
       const x = extras;
       if (cyb.beam) {
@@ -926,6 +973,13 @@
         if (on) { const f = .7 + Math.sin(t * 60) * .3; cyb.beam.scale.set(f, 1, f); cyb.glow.scale.setScalar(.8 + f * .5); }
         cyb.core.material.emissiveIntensity = on ? 4 : 1.4 + Math.sin(t * 3) * .5;
       }
+      if (cos.tipGlow) {
+        const night = dayMul < .8, cast = t < cos.castUntil;
+        cos.tipGlow.visible = night || cast; cos.tipGlow.scale.setScalar(cast ? 1.6 + Math.random() * .5 : 1 + Math.sin(t * 3) * .1);
+        cos.lumos.intensity = night ? 2.2 : cast ? 1.2 : 0;
+      }
+      candles.visible = cos.kind === 'wizard' && dayMul < .8;
+      if (candles.visible) candles.children.forEach(c => { c.position.y = c.userData.y + Math.sin(t * .9 + c.userData.ph) * .12; c.children[1].scale.set(1, .85 + Math.random() * .3, 1); });
       if (cos.tail) { cos.tail.rotation.z = Math.sin(t * 1.8) * .3; cos.tail.rotation.x = Math.sin(t * 1.1) * .08; }
       if (cos.blade) {
         const want = t < cos.saberUntil ? 1 : 0; cos.saberLen += (want - cos.saberLen) * Math.min(1, (want ? 9 : 6) / 60);
@@ -1105,7 +1159,43 @@
       } else { shots.forEach(m => { m.visible = false; }); bubble.visible = true; bubble.position.copy(to); bubble.scale.setScalar(1 + Math.sin(t * 12) * .08); }
     }
     function maskOn(on) { const m = cos.mask; if (!m) return; m.visible = true; const a = m.scale.x, b = on ? 1 : .001; tween(.25, p => m.scale.setScalar(Math.max(.001, a + (b - a) * (on ? elastic(p) : p))), () => { if (!on) m.visible = false; }); }
-    const aimPower = (power, to, reach) => (power === 'lightning' ? aimLightning(to, reach) : power === 'blaster' ? aimBlaster(to, reach) : aimTractor(to, reach === undefined ? 'tractor' : 'laser', reach));
+    // ---------- Wizard: a stream of golden sparkles from the wand (Accio!), swirling round the bug as it's summoned ----------
+    const sparkFx = new T.Group(); sparkFx.visible = false; scene.add(sparkFx);
+    const sparkMats = [0xfff4c8, 0xffd23f, 0xffffff].map(c => new T.MeshBasicMaterial({ color: c, transparent: true, opacity: .95, depthWrite: false, blending: T.AdditiveBlending }));
+    const sparks = Array.from({ length: 22 }, (_, i) => { const m = new T.Mesh(new T.SphereGeometry(.035, 8, 6), sparkMats[i % 3]); sparkFx.add(m); return m; });
+    function aimSpell(to, reach, orbit = 1) {
+      sparkFx.visible = true; cos.castUntil = t + .3;
+      const from = handWorld(), n = sparks.length, stream = reach === undefined ? 12 : n;
+      sparks.forEach((m, i) => {
+        if (i < stream) {
+          const q = ((i / stream) + t * 1.5) % 1 * (reach === undefined ? 1 : reach);
+          m.position.lerpVectors(from, to, q); m.position.x += (Math.random() - .5) * .08; m.position.y += (Math.random() - .5) * .08 + Math.sin(q * 9 + t * 8) * .05;
+        } else { const a = t * (orbit > 1 ? 3 : 7) + i * .9, r = (.2 + (i % 3) * .05) * orbit; m.position.set(to.x + Math.cos(a) * r, to.y + Math.sin(a * 1.3) * r * .7, to.z + Math.sin(a) * r); }
+        m.scale.setScalar(.6 + Math.random() * .8); m.visible = true;
+      });
+    }
+    // the Golden Snitch: zips about, then he catches it
+    function buildSnitch() {
+      const g = new T.Group(); g.add(sph(.13, mat(0xf5c542, { metalness: .9, roughness: .2, clearcoat: 1, emissive: 0x6a4a00, emissiveIntensity: .6 })));
+      g.add(sph(.3, new T.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: .22, depthWrite: false, blending: T.AdditiveBlending })));
+      const wm = new T.MeshPhysicalMaterial({ color: 0xf4f4f8, metalness: .6, roughness: .2, transparent: true, opacity: .9, side: T.DoubleSide });
+      g.userData.w = [-1, 1].map(sd => { const wg = new T.Group(); wg.position.x = sd * .11; const w = sph(.24, wm, 1, .05, .5, sd * .22, .03, 0); w.castShadow = false; wg.add(w); wg.userData.s = sd; g.add(wg); return wg; });
+      return g;
+    }
+    // an owl carrying a letter
+    function buildOwl() {
+      const g = new T.Group(), white = mat(0xf6f6f2, { roughness: .8, clearcoat: .1 }), speck = mat(0x9aa0a8, { roughness: .8 });
+      g.add(sph(.32, white, 1, 1.15, .9)); g.add(sph(.24, white, 1, 1, .95, 0, .38, .05));
+      [[-.12, .3], [.1, -.1], [-.05, .05], [.14, .2]].forEach(([x, y]) => g.add(sph(.03, speck, 1, .6, .4, x, y, .28)));
+      [-1, 1].forEach(sd => { g.add(sph(.075, mat(0xffd23f), 1, 1, .5, sd * .1, .42, .24)); g.add(sph(.04, mat(0x15151b), 1, 1, .5, sd * .1, .42, .27)); });
+      const beak = new T.Mesh(new T.ConeGeometry(.035, .1, 8), mat(0x4a3a2a)); beak.rotation.x = Math.PI; beak.position.set(0, .33, .28); g.add(beak);
+      g.userData.w = [-1, 1].map(sd => { const wg = new T.Group(); wg.position.set(sd * .28, .1, 0); const w = sph(.32, white, 1.4, .2, .7, sd * .3, 0, 0); wg.add(w); wg.userData.s = sd; g.add(wg); return wg; });
+      const env = new T.Group(); env.position.set(0, -.42, .05);
+      env.add(new T.Mesh(new T.BoxGeometry(.36, .24, .02), mat(0xf3e6c4, { roughness: .9 }))); env.add(sph(.04, mat(0xb8323f), 1, 1, .4, 0, 0, .02));
+      g.add(env); g.userData.env = env;
+      return g;
+    }
+    const aimPower = (power, to, reach) => (power === 'lightning' ? aimLightning(to, reach) : power === 'blaster' ? aimBlaster(to, reach) : power === 'spell' ? aimSpell(to, reach) : aimTractor(to, reach === undefined ? 'tractor' : 'laser', reach));
     // reel a bug in from wherever it is, then gobble it; ev() hears 'tractor' and 'gulp'
     function tractorEat(fly, stunned, ev, power) {
       const c = creatures.frog, h0 = fly.position.clone();
@@ -1116,7 +1206,7 @@
         fly.position.lerpVectors(h0, m, E(p)); fly.position.x += Math.sin(t * 23) * .05 * (1 - p); fly.rotation.z += .15; fly.rotation.y += .08;
         aimPower(power, fly.position); fx.squint = .35; fx.open = p > .7 ? (p - .7) / .3 * .8 : 0;
       }, () => {
-        tractor.visible = false; bolts.visible = false; blastFx.visible = false; if (power === 'blaster') maskOn(false); const h1 = fly.position.clone();
+        tractor.visible = false; bolts.visible = false; blastFx.visible = false; sparkFx.visible = false; if (power === 'blaster') maskOn(false); const h1 = fly.position.clone();
         tween(.16, p => { fx.open = .85; fly.position.lerpVectors(h1, mouthWorld(c), p); fly.scale.setScalar(1 - p * .9); }, () => { scene.remove(fly); chomp(); ev && ev('gulp'); });
       });
     }
@@ -1125,7 +1215,7 @@
     function shoot(pw, fly, ev, zapped, flap) {
       const go = () => {
         ev && ev('zap');
-        tween(pw === 'blaster' ? .45 : pw === 'lightning' ? .3 : .2, p => {
+        tween(pw === 'blaster' ? .45 : pw === 'lightning' || pw === 'spell' ? .35 : .2, p => {
           flap && flap(); aimPower(pw, fly.position, pw === 'blaster' || !zapped ? p : Math.min(1, p * 3));
           if (pw === 'laser' && zapped && p > .4 && !fly.userData.zapped) { fly.userData.zapped = true; burst(fly.position.clone(), 10, .35); }
         }, () => tractorEat(fly, zapped || pw !== 'laser', ev, pw));
@@ -1133,7 +1223,7 @@
       if (pw === 'blaster') { ev && ev('mask'); maskOn(true); tween(.4, () => { flap && flap(); }, go); } else go();
     }
     const costumeReady = k => cos.kind === k && !!cos.hand && stage !== 'egg' && keyOf(stage) === 'frog';
-    const power = () => (cyborgReady() ? 'laser' : costumeReady('sith') ? 'lightning' : costumeReady('starlord') ? 'blaster' : null);
+    const power = () => (cyborgReady() ? 'laser' : costumeReady('sith') ? 'lightning' : costumeReady('starlord') ? 'blaster' : costumeReady('wizard') ? 'spell' : null);
     function chomp() { tween(.55, p => { fx.open = Math.abs(Math.sin(p * Math.PI * 3)) * .9; fx.sy = 1 - Math.abs(Math.sin(p * Math.PI * 3)) * .04; }); }
     function burst(at, n = 26, size = 1) {
       const cols = [0xffd23f, 0xff7eb6, 0x6f8cff, 0x7fe0a0, 0xff9a4d];
@@ -1293,6 +1383,43 @@
       setWind(w) { wind = +w || 0; },
       // cyborg tricks: fire the laser eye, or blast off on rocket boots
       laser() { if (!cyb.beam) return false; cyb.laserUntil = t + .9; return true; },
+      // chase the Golden Snitch round the pond, then leap and catch it; done() when caught
+      snitch(done) {
+        if (!costumeReady('wizard')) return false;
+        const sn = buildSnitch(); scene.add(sn); let lastP = 0;
+        const path = p => new T.Vector3(Math.sin(p * 17) * 2.3, 1.75 + Math.sin(p * 23) * .55, 1.6 + Math.cos(p * 13) * .7);
+        tween(3.2, p => {
+          sn.userData.w.forEach(w => { w.rotation.z = w.userData.s * Math.sin(t * 80) * .9; });
+          const pos = p < .8 ? path(p) : path(.8).lerp(handWorld().add(new T.Vector3(0, .25, .1)), E((p - .8) / .2));
+          sn.position.copy(pos); fx.ry = Math.atan2(pos.x, 3) * .5;
+          if (p > .7) { const q = Math.sin(Math.min(1, (p - .7) / .3) * Math.PI); fx.y = q * .9; fx.sy = 1 + q * .05; }
+          lastP = p;
+        }, () => { burst(sn.position.clone(), 18, .5); scene.remove(sn); done && done(); });
+        return true;
+      },
+      // an owl swoops in and drops a letter in front of him; done() when it lands
+      owl(done) {
+        const o = buildOwl(); scene.add(o); const env = o.userData.env;
+        const a = new T.Vector3(-4.5, 3.3, -.5), b = new T.Vector3(.2, 2.55, 1.7), c = new T.Vector3(4.6, 3.5, -.8); o.scale.setScalar(.72);
+        tween(4.2, p => {
+          o.userData.w.forEach(w => { w.rotation.z = w.userData.s * Math.sin(t * 14) * .7; });
+          if (p < .45) o.position.lerpVectors(a, b, E(p / .45)); else o.position.lerpVectors(b, c, E((p - .45) / .55));
+          o.rotation.y = p < .45 ? .6 : -.6; o.rotation.z = Math.sin(t * 3) * .08;
+          if (p >= .45 && env.parent === o) { o.remove(env); scene.add(env); env.position.copy(b).add(new T.Vector3(0, -.3, .05)); env.userData.from = env.position.clone(); env.userData.t0 = p; }
+          if (env.parent === scene) { const q = Math.min(1, (p - env.userData.t0) / .3); env.position.set(env.userData.from.x + Math.sin(q * 9) * .25, env.userData.from.y - q * 2.15, env.userData.from.z + q * .3); env.rotation.z = Math.sin(q * 8) * .5; if (q >= 1) env.rotation.set(-Math.PI / 2 + .2, 0, .3); }
+        }, () => { scene.remove(o); done && done(); tween(2.5, p => { if (p > .8) env.scale.setScalar(Math.max(.001, (1 - p) / .2)); }, () => scene.remove(env)); });
+        return true;
+      },
+      // Wingardium Leviosa: he floats up with sparkles swirling round him
+      leviosa() {
+        if (!costumeReady('wizard')) return false;
+        tween(2.8, p => {
+          const up = p < .3 ? E(p / .3) : p < .75 ? 1 : 1 - E((p - .75) / .25); fx.y = up * 1.1 + Math.sin(p * 20) * .04 * up; fx.rz = Math.sin(p * 9) * .06 * up; fx.squint = .4;
+          const c = creatures.frog.anchor, w = new T.Vector3(); c.getWorldPosition(w); w.y -= .9; aimSpell(w, undefined, 5.5); sparks.forEach((m, i) => { if (i < 12) m.visible = false; });
+          cos.castUntil = t + .2;
+        }, () => { sparkFx.visible = false; });
+        return true;
+      },
       dance(dur = 3.4) { tween(dur, p => { const b = Math.abs(Math.sin(p * Math.PI * 10)); fx.y = b * .22; fx.rz = Math.sin(p * Math.PI * 5) * .16; fx.ry = Math.sin(p * Math.PI * 2.5) * .55; fx.sy = 1 + b * .04; fx.squint = .6; fx.open = .45; }); },
       saber() { if (!cos.blade) return false; cos.saberUntil = t + 2.8; tween(.5, p => { fx.rz = Math.sin(p * Math.PI) * -.08; }); return true; },
       // a bug buzzes past; he zaps it with his laser, then tractor-beams it into his mouth
