@@ -105,7 +105,7 @@
           s.pops.push({ x: t.x, y: t.y, text: t.k === 'golden' && o.wizard ? 'Snitch! +' + t.pts : '+' + t.pts, life: 1, gold: t.k === 'golden' });
         } else if (f.hurt <= 0) {
           f.hurt = 1.6; s.hearts--; f.vy = -H * .25;
-          s.pops.push({ x: fx, y: f.y - fr, text: t.k === 'sewage' ? 'Yuck!' : t.k === 'lobster' ? 'Pinch!' : 'Ouch!', life: 1.1, bad: true });
+          s.pops.push({ x: fx, y: f.y - fr, text: t.k === 'sewage' ? (o.season === 'halloween' ? 'Boo!' : o.season === 'christmas' ? 'Coal!' : 'Yuck!') : t.k === 'lobster' ? 'Pinch!' : 'Ouch!', life: 1.1, bad: true });
           o.onHit && o.onHit(s.hearts, t.k);
           if (s.hearts <= 0) { s.over = .001; f.vy = 0; }
         }
@@ -281,6 +281,15 @@
         // and his eye peeping out from under it
         ell(r * .45, -r * .68, r * .25, r * .25, 0, '#fff'); ell(r * .54, -r * .66, r * .12, r * .14, 0, '#15151b');
       }
+      if (o.hat === 'witch') {
+        ctx.fillStyle = '#1b1622'; ell(r * .05, -r * .78, r * .62, r * .1, -.15, '#1b1622');
+        ctx.beginPath(); ctx.moveTo(-r * .32, -r * .8); ctx.lineTo(r * .02, -r * 1.55); ctx.lineTo(-r * .3, -r * 1.75); ctx.lineTo(r * .38, -r * .86); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ff8a1f'; ctx.beginPath(); ctx.moveTo(-r * .3, -r * .84); ctx.lineTo(r * .36, -r * .9); ctx.lineTo(r * .32, -r * 1.0); ctx.lineTo(-r * .24, -r * .96); ctx.closePath(); ctx.fill();
+      }
+      if (o.hat === 'santa') {
+        ctx.fillStyle = '#d62a2a'; ctx.beginPath(); ctx.moveTo(-r * .35, -r * .82); ctx.quadraticCurveTo(-r * .1, -r * 1.7, -r * .7, -r * 1.45); ctx.lineTo(r * .38, -r * .88); ctx.closePath(); ctx.fill();
+        ell(r * .02, -r * .84, r * .42, r * .12, -.1, '#ffffff'); ell(-r * .72, -r * 1.45, r * .12, r * .12, 0, '#ffffff');
+      }
       if (o.hat === 'crown') { ctx.fillStyle = '#f5c542'; ctx.beginPath(); ctx.moveTo(-r * .2, -r * .7); ctx.lineTo(-r * .25, -r * 1.05); ctx.lineTo(-r * .05, -r * .85); ctx.lineTo(r * .1, -r * 1.1); ctx.lineTo(r * .2, -r * .8); ctx.closePath(); ctx.fill(); }
       // cheek and mouth (opens wide when he gobbles something)
       ell(r * .72, r * .05, r * .14, r * .09, 0, 'rgba(255,140,170,.8)');
@@ -328,6 +337,22 @@
     }
     function drawSewage(t) {
       const r = t.r;
+      if (o.season === 'halloween') {
+        // a friendly-but-in-the-way ghost
+        ctx.save(); ctx.translate(t.x, t.y);
+        ctx.beginPath(); ctx.moveTo(-r * .8, r * .7); ctx.lineTo(-r * .8, -r * .1); ctx.arc(0, -r * .1, r * .8, Math.PI, 0); ctx.lineTo(r * .8, r * .7);
+        for (let i = 0; i < 4; i++) ctx.quadraticCurveTo(r * (.6 - i * .4), r * (1.05 + Math.sin(t.ph * 6 + i) * .12), r * (.4 - i * .4), r * .7);
+        ctx.closePath(); ctx.fillStyle = 'rgba(245,245,255,.92)'; ctx.fill();
+        ell(-r * .28, -r * .2, r * .12, r * .17, 0, '#2a2438'); ell(r * .28, -r * .2, r * .12, r * .17, 0, '#2a2438'); ell(0, r * .22, r * .14, r * .18, 0, '#2a2438');
+        ctx.restore(); return;
+      }
+      if (o.season === 'christmas') {
+        // a lump of coal (for naughty frogs!)
+        ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(t.ph * .5);
+        ctx.beginPath(); [[1, 0], [.6, .75], [-.2, .85], [-.9, .35], [-.85, -.45], [-.15, -.9], [.7, -.6]].forEach(([x, y], i) => (i ? ctx.lineTo(x * r * .8, y * r * .8) : ctx.moveTo(x * r * .8, y * r * .8))); ctx.closePath();
+        ctx.fillStyle = '#26262c'; ctx.fill(); ell(-r * .2, -r * .25, r * .2, r * .1, -.5, 'rgba(255,255,255,.18)');
+        ctx.restore(); return;
+      }
       ctx.save(); ctx.translate(t.x, t.y);
       ctx.strokeStyle = 'rgba(140,200,90,.75)'; ctx.lineWidth = r * .09; ctx.lineCap = 'round';
       for (let i = -1; i <= 1; i++) { ctx.beginPath(); const sx = i * r * .45, ph = t.ph * 3 + i; ctx.moveTo(sx, -r * .7); ctx.bezierCurveTo(sx + Math.sin(ph) * r * .25, -r * 1, sx - Math.sin(ph) * r * .25, -r * 1.2, sx, -r * 1.5); ctx.stroke(); }
@@ -355,6 +380,12 @@
         ell(r * .2, -r * .15, r * .62, r * .58, 0, '#c77a3c');
         ctx.beginPath(); for (let i = 0; i < 30; i++) { const a = i * .45, rr = r * .5 * (1 - i / 32); ctx.lineTo(r * .2 + Math.cos(a) * rr, -r * .15 + Math.sin(a) * rr); }
         ctx.strokeStyle = '#8a4e20'; ctx.lineWidth = r * .09; ctx.stroke();
+      } else if (t.k === 'golden' && o.season === 'christmas' && !o.wizard) {
+        // a wrapped present
+        const gl = ctx.createRadialGradient(0, 0, r * .2, 0, 0, r * 1.5); gl.addColorStop(0, 'rgba(255,230,120,.55)'); gl.addColorStop(1, 'rgba(255,230,120,0)');
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#d62a2a'; ctx.fillRect(-r * .6, -r * .5, r * 1.2, r * 1.1); ctx.fillStyle = '#ffd23f'; ctx.fillRect(-r * .1, -r * .5, r * .2, r * 1.1); ctx.fillRect(-r * .6, -r * .05, r * 1.2, r * .18);
+        ell(-r * .2, -r * .62, r * .2, r * .12, -.4, '#ffd23f'); ell(r * .2, -r * .62, r * .2, r * .12, .4, '#ffd23f');
       } else if (t.k === 'golden' && o.wizard) {
         // the Golden Snitch, wings a-blur
         const gl = ctx.createRadialGradient(0, 0, r * .2, 0, 0, r * 1.5); gl.addColorStop(0, 'rgba(255,230,120,.6)'); gl.addColorStop(1, 'rgba(255,230,120,0)');

@@ -3,7 +3,7 @@
 
   // ---------- Config ----------
   const KEY = 'frogpet-v1-b-app'; // same save slot as the Frog Pond prototype, so progress carries over
-  const APP_VERSION = '2026-10-25.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
+  const APP_VERSION = '2026-10-30.1'; // keep in step with version.json and sw.js (bump-version.sh does all three)
   const HR = 1 / 3600;
   const RATES = { food: 8 * HR, clean: 5 * HR, fun: 7 * HR, love: 6 * HR, energy: 5 * HR }; // points lost per second
   const POTTY_RATE = 7 * HR;     // the loo meter fills slowly on its own...
@@ -167,6 +167,38 @@
   const windLevel = () => { const w = windKmh(); return w >= 50 ? 3 : w >= 35 ? 2 : w >= 20 ? 1 : 0; };
   const mph = () => Math.round(windKmh() * .621);
   // made-up places have their own sky; real places use their own weather and clock
+  // ---------- Seasons: Halloween (17 Oct to 2 Nov) and Christmas (11 Dec to 6 Jan) ----------
+  const SEASON_TEST = (location.search.match(/[?&]season=(halloween|christmas|none)\b/) || [])[1];
+  function season(d = new Date()) {
+    if (SEASON_TEST) return SEASON_TEST === 'none' ? null : SEASON_TEST;
+    const m = d.getMonth(), day = d.getDate();
+    if ((m === 9 && day >= 17) || (m === 10 && day <= 2)) return 'halloween';
+    if ((m === 11 && day >= 11) || (m === 0 && day <= 6)) return 'christmas';
+    return null;
+  }
+  function sleepsToXmas(d = new Date()) {
+    const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(), x = new Date(y, 11, 25), today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((x - today) / 864e5);
+  }
+  function seasonLine() {
+    const k = season(), d = new Date(); if (!k) return null;
+    if (k === 'halloween') return d.getMonth() === 9 && d.getDate() === 31 ? pick(["It's Halloween! Trick or treat? Ribbit!", 'Happy Halloween! Boo!']) : pick([
+      'Happy Halloween! Ribbit!', "Trick or treat? I'd like a fly, please!", 'Boo! Did I scare you? Hee hee.', 'What are you dressing up as for Halloween?', 'Look at my pumpkins! Spooky!']);
+    const n = sleepsToXmas(d);
+    if (n === 0) return pick(['Merry Christmas!!', 'It’s Christmas Day! Merry Christmas!']);
+    if (n === 1) return "It's Christmas Eve! Santa comes tonight!";
+    if (n > 1) return pick(['Only ' + n + ' sleeps until Christmas!', 'Only ' + n + ' sleeps until Christmas!', "I've written my list for Santa: flies, flies and more flies!", 'Have you been good this year? I have!', 'Look at my Christmas tree! Twinkly!']);
+    if ((d.getMonth() === 11 && d.getDate() === 31) || (d.getMonth() === 0 && d.getDate() === 1)) return 'Happy New Year! Ribbit!';
+    return pick(['I hope Santa brought you something lovely!', 'I love Christmas holidays!']);
+  }
+  const SEASON_JOKES = {
+    halloween: [['What do you call a frog on Halloween?', 'A hop-goblin!'], ["Why didn't the skeleton go to the party?", 'He had no body to go with!'], ["What's a ghost's favourite pudding?", 'I scream!'],
+      ['What do you call a witch at the beach?', 'A sand-witch!'], ['Why are ghosts bad at telling lies?', 'You can see right through them!'], ['Which room does a ghost not need?', 'A living room!'],
+      ['What do skeletons say before they eat?', 'Bone appétit!'], ['Where do ghosts buy their food?', 'At the ghost-ery shop!']],
+    christmas: [['Why do frogs love Christmas?', 'Because of all the mistle-toad!'], ['What do snowmen eat for lunch?', 'Icebergers!'], ['Why was the snowman looking through the carrots?', 'He was picking his nose!'],
+      ['What does Santa do in his garden?', 'Hoe, hoe, hoe!'], ['What do reindeer hang on their Christmas trees?', 'Horn-aments!'], ['Who brings presents to baby sharks?', 'Santa Jaws!'],
+      ["What's a frog's favourite Christmas song?", 'Jingle Bells, Jingle Bells, Jingle all the lily pad!'], ['What do you call Santa’s helpers?', 'Subordinate clauses!']]
+  };
   const FANTASY = { space: 'night', disco: 'night', spooky: 'night', underwater: 'day', candy: 'day' };
   const scenePhase = () => FANTASY[S.scene] || skyPhase();
   const sceneWeather = () => (FANTASY[S.scene] ? 'clear' : wxKind());
@@ -242,7 +274,7 @@
   // ---------- State ----------
   const base = () => ({
     name: '', stage: 'egg', needs: { food: 72, clean: 80, fun: 58, love: 66, energy: 85 }, xp: 0, hat: 'none', potty: 20, mess: [0, 0, 0], asleep: false,
-    coins: 20, owned: {}, decor: {}, colour: 'green', neck: 'none', face: 'none', scene: 'pond', jobs: null, stars: {}, tricky: {}, history: [], stats: {}, best: {}, stickers: {}, day: '', streak: 0, sound: true, clock: false, last: Date.now()
+    coins: 20, owned: {}, decor: {}, colour: 'green', neck: 'none', face: 'none', scene: 'pond', jobs: null, stars: {}, tricky: {}, history: [], stats: {}, best: {}, stickers: {}, day: '', streak: 0, sound: true, clock: false, seasonTreats: {}, last: Date.now()
   });
   const SAVED = Object.keys(base());
   let note = null;
@@ -299,7 +331,7 @@
   function syncEngine() {
     if (!engine) return;
     const cold = coldNow(), wet = isRainy();
-    engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(['cat', 'sith', 'starlord'].includes(S.face) ? 'none' : S.owned.bobble && cold ? 'bobble' : S.hat);
+    engine.setStage(S.stage); engine.setSleep(S.asleep); engine.setMood(mood()); engine.setHat(['cat', 'sith', 'starlord'].includes(S.face) ? 'none' : S.owned.bobble && cold ? 'bobble' : S.hat !== 'none' ? S.hat : season() === 'halloween' ? 'witch' : season() === 'christmas' ? 'santa' : 'none');
     engine.setOutfit({ neck: S.owned.scarf && cold ? 'scarf' : S.neck, face: S.face, feet: S.face === 'cyborg' ? 'rockets' : S.face === 'starlord' ? 'jetboots' : S.face === 'cat' ? 'paws' : S.owned.wellies && wet ? 'wellies' : 'none', umbrella: !!(S.owned.umbrella && wet) });
     engine.setWind(windKmh());
     const wl = windLevel();
@@ -311,7 +343,7 @@
     engine.setDirty(S.needs.clean < 40 ? (40 - S.needs.clean) / 40 : 0);
     engine.setMess(S.mess); engine.setExtras(S.stage === 'egg' ? {} : S.decor);
     engine.setColour(Object.assign({ key: S.colour }, COLOURS[S.colour] || COLOURS.green));
-    engine.setScene(S.scene);
+    engine.setScene(S.scene); engine.setSeason(season());
     const ph = scenePhase(), dull = ['cloudy', 'fog', 'rain', 'drizzle', 'storm', 'snow'].includes(sceneWeather());
     engine.setDaylight((ph === 'day' ? 1.3 : ph === 'night' ? .6 : 1) * (dull ? .85 : 1));
   }
@@ -393,6 +425,7 @@
     if (S.stage === 'egg') return;
     ensureJobs();
     const today = dayKey(new Date()); if (S.day === today) return;
+    seasonTreat();
     const y = new Date(); y.setDate(y.getDate() - 1);
     S.streak = S.day === dayKey(y) ? S.streak + 1 : 1; S.day = today;
     save();
@@ -598,7 +631,8 @@
   function tellJoke() {
     let heard = []; try { heard = JSON.parse(localStorage.getItem('fp-jokes') || '[]'); } catch (e) {}
     let fresh = JOKES.map((_, i) => i).filter(i => !heard.includes(i)); if (!fresh.length) { heard = []; fresh = JOKES.map((_, i) => i); }
-    const i = pick(fresh), [q, a] = JOKES[i]; heard.push(i);
+    const sj = SEASON_JOKES[season()], seasonal = sj && Math.random() < .5;
+    const i = pick(fresh), [q, a] = seasonal ? pick(sj) : JOKES[i]; if (!seasonal) heard.push(i);
     try { localStorage.setItem('fp-jokes', JSON.stringify(heard)); } catch (e) {}
     jokeAt = Date.now(); const intro = Math.random() < .4 ? pick(['Want to hear a joke? ', 'I know a good one! ', 'Joke time! ']) : '';
     engine && engine.lookAround(); say(intro + q, 4200);
@@ -996,7 +1030,7 @@
   function makeSplashy() {
     const c = COLOURS[S.colour] || COLOURS.green, g = S.game;
     splashy = Splashy.create($('splashCanvas'), {
-      colour: c.body, belly: c.belly, spot: c.spot, cyborg: S.face === 'cyborg', sith: S.face === 'sith', cat: S.face === 'cat', starlord: S.face === 'starlord', wizard: S.face === 'wizard', hat: ['cat', 'sith', 'starlord'].includes(S.face) ? 'none' : S.hat,
+      colour: c.body, belly: c.belly, spot: c.spot, cyborg: S.face === 'cyborg', sith: S.face === 'sith', cat: S.face === 'cat', starlord: S.face === 'starlord', wizard: S.face === 'wizard', season: season(), hat: ['cat', 'sith', 'starlord'].includes(S.face) ? 'none' : S.hat !== 'none' ? S.hat : season() === 'halloween' ? 'witch' : season() === 'christmas' ? 'santa' : 'none',
       onEat: (p, k) => { g.score += p; sfx(k === 'golden' ? 'coin' : 'pop'); },
       onBeam: () => sfx(S.face === 'sith' ? 'zap' : S.face === 'starlord' ? 'blaster' : S.face === 'wizard' ? 'spell' : 'laser'),
       onHit: h => { g.hearts = h; bonk(); sfx('bonk'); },
@@ -1519,6 +1553,34 @@
   }
   const flyEls = new Map(), itemEls = new Map();
 
+  // seasonal decorations over the pond
+  let builtSeason;
+  function buildSeason(k) {
+    builtSeason = k; let h = '';
+    if (k === 'halloween') {
+      h = '<div class="bats">' + [0, 1, 2].map(i => '<span style="top:' + (10 + i * 8) + '%;animation-delay:' + (-i * 4.1) + 's;animation-duration:' + (13 + i * 3) + 's"><svg viewBox="0 0 40 16"><path d="M20 6 Q16 0 10 4 Q6 0 0 6 Q6 6 8 10 Q12 8 14 12 Q17 9 20 12 Q23 9 26 12 Q28 8 32 10 Q34 6 40 6 Q34 0 30 4 Q24 0 20 6 Z" fill="#1a0f26"/></svg></span>').join('') + '</div>' +
+        '<svg class="web" viewBox="0 0 100 100"><g stroke="rgba(255,255,255,.55)" stroke-width="1.2" fill="none"><path d="M100 0 L0 100 M100 0 L30 100 M100 0 L60 100 M100 0 L0 30 M100 0 L0 62"/>' +
+        [22, 44, 66, 88].map(r => '<path d="M' + (100 - r) + ' 0 Q' + (100 - r * .8) + ' ' + r * .35 + ' ' + (100 - r * .72) + ' ' + r * .72 + ' Q' + (100 - r * .38) + ' ' + r * .8 + ' 100 ' + r + '"/>').join('') + '</g></svg>' +
+        '<div class="spider"><i></i><svg viewBox="0 0 40 30"><g stroke="#1a0f26" stroke-width="2.2" fill="none" stroke-linecap="round"><path d="M14 14 L4 6 M14 16 L2 16 M14 18 L4 26 M26 14 L36 6 M26 16 L38 16 M26 18 L36 26"/></g><ellipse cx="20" cy="16" rx="8" ry="7" fill="#1a0f26"/><circle cx="17" cy="14" r="2" fill="#fff"/><circle cx="23" cy="14" r="2" fill="#fff"/><circle cx="17.5" cy="14.5" r="1" fill="#000"/><circle cx="23.5" cy="14.5" r="1" fill="#000"/></svg></div>';
+    } else if (k === 'christmas') {
+      const cols = ['#ff4d4d', '#ffd23f', '#3fd27a', '#3fa9ff', '#ff7eb6'];
+      h = '<div class="xsnow"></div><div class="xlights">' + Array.from({ length: 18 }, (_, i) => '<i style="left:' + (i / 17 * 100) + '%;top:' + (Math.sin(i / 17 * Math.PI * 3) * 6 + 8).toFixed(1) + 'px;background:' + cols[i % 5] + ';color:' + cols[i % 5] + ';animation-delay:' + (i % 3 * .5) + 's"></i>').join('') + '</div>';
+    }
+    $('seasonFx').innerHTML = h;
+  }
+  // a once-a-year treat on Halloween and Christmas Day
+  function seasonTreat() {
+    if (S.stage === 'egg') return;
+    const d = new Date(), y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    const k = m === 9 && day === 31 ? 'halloween-' + y : m === 11 && day === 25 ? 'christmas-' + y : null;
+    if (!k || (S.seasonTreats && S.seasonTreats[k])) return;
+    S.seasonTreats = Object.assign({}, S.seasonTreats, { [k]: true }); save();
+    setTimeout(() => {
+      const xmas = k.startsWith('christmas');
+      earn(xmas ? 25 : 10); sfx('fanfare'); engine && engine.burst();
+      say(xmas ? 'Merry Christmas! I got you a present: 25 lily coins!' : 'Trick or treat! Here are 10 lily coins. Happy Halloween!', 4500);
+    }, 7000);
+  }
   function speechLine(m, low) {
     if (S.toast) return S.toast;
     if (S.asleep) return 'Zzz…';
@@ -1535,6 +1597,7 @@
     if (open && Math.floor(Date.now() / 15000) % 3 === 0) return "Today's job: " + fillName(jobInfo(open.id).label) + '. Shall we?';
     if (isNight() && S.needs.energy < 70) return "It's nearly bedtime!";
     const slot = Math.floor(Date.now() / 20000) % 4, sl = sceneLine(), wl = weatherLine();
+    const sea = seasonLine(); if (sea && slot === 2) return sea;
     if (sl && (slot === 1 || slot === 3)) return sl;
     if (wl && slot === 1) return wl;
     return m === 'happy' ? 'Ribbit! I love you, friend!' : okLines[low.k];
@@ -1548,7 +1611,8 @@
     // sky
     const ph = scenePhase(), wk = sceneWeather(), wet = ['rain', 'drizzle', 'storm'].includes(wk), cls = 'pond sky-' + ph + ' w-' + wk + ' scene-' + S.scene + (FANTASY[S.scene] ? ' fantasy' : '') + ' wind-' + windLevel();
     if (builtScene !== S.scene) { buildScenery(S.scene); fetchWeather(); }
-    if ($('pond').className !== cls) $('pond').className = cls;
+    const sk = season(); if (builtSeason !== sk) buildSeason(sk);
+    if ($('pond').className !== cls + (sk ? ' season-' + sk : '')) $('pond').className = cls + (sk ? ' season-' + sk : '');
     const orb = S.scene === 'spooky' ? 'moon full' : FANTASY[S.scene] ? '' : S.scene === 'desert' ? 'sun big' : wk === 'clear' || wk === 'partly' ? (ph === 'night' ? 'moon' : 'sun') : '';
     if ($('orb').className !== 'sky-orb ' + orb) $('orb').className = 'sky-orb ' + orb;
     $('orb').hidden = !orb;
@@ -1820,7 +1884,7 @@
   render();
   mountEngine();
   if (note) setTimeout(() => say(note, 4500), 600);
-  checkDay();
+  checkDay(); seasonTreat();
   setInterval(decay, 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') decay(); else save(); });
 

@@ -161,6 +161,25 @@
         [-1, 1].forEach(s => { const st = new T.Mesh(new T.CylinderGeometry(.015, .015, .4, 6), blk); st.position.set(s * .14, .2, .02); st.rotation.z = -s * .35; h.add(st); h.add(sph(.06, mat(0xffcc33), 1, 1, 1, s * .22, .4, .02)); });
         const wm = new T.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: .55, side: T.DoubleSide });
         [-1, 1].forEach(s => { const w = sph(.2, wm, .5, .08, 1, s * .2, -.15, -.4); w.rotation.z = s * .5; h.add(w); });
+      } else if (kind === 'witch') {
+        // Halloween: a black witch's hat with an orange band and a bent tip
+        const blk = mat(0x1b1622, { roughness: .6 }), band = mat(0xff8a1f, { roughness: .5 });
+        const w = new T.Group(); w.rotation.set(-.1, 0, -.12);
+        const brim = new T.Mesh(new T.CylinderGeometry(.48, .48, .03, 40), blk); brim.position.y = .02; brim.castShadow = true; w.add(brim);
+        const cone = new T.Mesh(new T.ConeGeometry(.3, .6, 40), blk); cone.position.y = .32; cone.castShadow = true; w.add(cone);
+        const tip = new T.Mesh(new T.ConeGeometry(.11, .32, 20), blk); tip.position.set(-.1, .7, 0); tip.rotation.z = .9; w.add(tip);
+        const b = new T.Mesh(new T.CylinderGeometry(.29, .3, .08, 40), band); b.position.y = .08; w.add(b);
+        const buckle = new T.Mesh(new T.BoxGeometry(.1, .08, .02), mat(0xffd23f, { metalness: .5 })); buckle.position.set(0, .08, .29); w.add(buckle);
+        h.add(w);
+      } else if (kind === 'santa') {
+        // Christmas: a floppy red Santa hat with white fur and a bobble
+        const red = mat(0xd62a2a, { roughness: .8, clearcoat: 0 }), fur = mat(0xffffff, { roughness: 1, clearcoat: 0 });
+        const w = new T.Group(); w.rotation.set(-.08, 0, -.1);
+        const cone = new T.Mesh(new T.ConeGeometry(.32, .62, 32), red); cone.position.y = .3; cone.castShadow = true; w.add(cone);
+        const flop = new T.Mesh(new T.ConeGeometry(.12, .34, 20), red); flop.position.set(.16, .58, 0); flop.rotation.z = -1.3; w.add(flop);
+        const rim = new T.Mesh(new T.TorusGeometry(.31, .08, 12, 32), fur); rim.rotation.x = Math.PI / 2; rim.position.y = .03; w.add(rim);
+        w.add(sph(.1, fur, 1, 1, 1, .34, .52, 0));
+        h.add(w);
       } else if (kind === 'wizard') {
         const pm = mat(0x6b4bd6), gold = mat(0xffd23f, { metalness: .4, roughness: .3, clearcoat: 1 });
         const brim = new T.Mesh(new T.CylinderGeometry(.44, .44, .03, 40), pm); brim.position.y = .02; brim.castShadow = true;
@@ -904,6 +923,28 @@
     mball.position.set(1.25, 2.85, -.4); disco.add(mball);
     { const cord = new T.Mesh(new T.CylinderGeometry(.01, .01, 1.4, 6), mat(0x888888)); cord.position.set(1.25, 3.7, -.4); disco.add(cord); }
     const discoLights = [0xff3fa4, 0x3fd9ff, 0xffe14d].map(col => { const l = new T.PointLight(col, 1.1, 6); disco.add(l); return l; });
+    let season = null;
+    const xmas = new T.Group(); xmas.visible = false; scene.add(xmas);
+    {
+      const tree = new T.Group(); tree.position.set(-1.45, PAD_Y, -.95); xmas.add(tree);
+      const trunk = new T.Mesh(new T.CylinderGeometry(.07, .09, .25, 10), mat(0x6b4a2a)); trunk.position.y = .12; tree.add(trunk);
+      const green = mat(0x2f8a4a, { roughness: .6 });
+      [[.5, .55, .45], [.4, .5, .78], [.28, .42, 1.06]].forEach(([r, h, y]) => { const c = new T.Mesh(new T.ConeGeometry(r, h, 18), green); c.position.y = y; c.castShadow = true; tree.add(c); });
+      const star = new T.Mesh(new T.OctahedronGeometry(.1), mat(0xffd23f, { emissive: 0xffb000, emissiveIntensity: .8 })); star.position.y = 1.34; tree.add(star);
+      xmas.userData.baubles = [];
+      [[.32, .38, 0], [-.3, .42, 1], [.05, .4, 2], [.26, .68, 3], [-.22, .72, 4], [.12, .96, 5], [-.1, .98, 0], [.0, .62, 1]].forEach(([x, y, i]) => {
+        const col = [0xff3b3b, 0xffd23f, 0x3fa9ff, 0xff7eb6, 0xffffff, 0xa780e6][i];
+        const b = sph(.05, mat(col, { emissive: col, emissiveIntensity: .3, clearcoat: 1 }), 1, 1, 1, x, y, Math.sqrt(Math.max(0, (.5 - y * .32) ** 2 - x * x)) + .02); tree.add(b); xmas.userData.baubles.push(b);
+      });
+      [[1.45, .95, 0xd62a2a, 0xffd23f, .26], [1.15, 1.35, 0x3fa9ff, 0xffffff, .2], [1.75, .55, 0x3fa54b, 0xd62a2a, .22]].forEach(([x, z, c, rb, sz]) => {
+        const gift = new T.Group(); gift.position.set(x, PAD_Y + sz / 2, z); gift.rotation.y = x;
+        gift.add(new T.Mesh(new T.BoxGeometry(sz, sz, sz), mat(c, { roughness: .5 })));
+        const r1 = new T.Mesh(new T.BoxGeometry(sz * 1.02, sz * 1.02, sz * .18), mat(rb)); gift.add(r1);
+        const r2 = new T.Mesh(new T.BoxGeometry(sz * .18, sz * 1.02, sz * 1.02), mat(rb)); gift.add(r2);
+        gift.add(sph(sz * .18, mat(rb), 1.4, .7, 1, 0, sz * .55, 0));
+        gift.children.forEach(m => { m.castShadow = true; }); xmas.add(gift);
+      });
+    }
     const pumpkins = new T.Group(); pumpkins.visible = false; scene.add(pumpkins);
     [[1.5, .95, 1], [-1.6, .15, .8]].forEach(([x, z, s]) => {
       const p = new T.Group(); p.position.set(x, PAD_Y, z); p.scale.setScalar(s); p.rotation.y = -x * .3; pumpkins.add(p);
@@ -978,6 +1019,7 @@
         cos.tipGlow.visible = night || cast; cos.tipGlow.scale.setScalar(cast ? 1.6 + Math.random() * .5 : 1 + Math.sin(t * 3) * .1);
         cos.lumos.intensity = night ? 2.2 : cast ? 1.2 : 0;
       }
+      if (xmas.visible) xmas.userData.baubles.forEach((b, i) => { b.material.emissiveIntensity = Math.sin(t * 2.5 + i * 1.7) > .3 ? 1.4 : .25; });
       candles.visible = cos.kind === 'wizard' && dayMul < .8;
       if (candles.visible) candles.children.forEach(c => { c.position.y = c.userData.y + Math.sin(t * .9 + c.userData.ph) * .12; c.children[1].scale.set(1, .85 + Math.random() * .3, 1); });
       if (cos.tail) { cos.tail.rotation.z = Math.sin(t * 1.8) * .3; cos.tail.rotation.x = Math.sin(t * 1.1) * .08; }
@@ -1457,10 +1499,15 @@
         });
       },
       playToy,
+      // seasonal decorations: Halloween pumpkins on any pond, a Christmas tree and presents at Christmas
+      setSeason(k) {
+        if (k === season) return; season = k || null;
+        pumpkins.visible = sceneMode === 'spooky' || season === 'halloween'; xmas.visible = season === 'christmas';
+      },
       setScene(name) {
         if (name === sceneMode) return; sceneMode = name;
         tache.frog.visible = tache.tad.visible = name === 'paris';
-        bubbleHelmet.visible = name === 'space'; disco.visible = name === 'disco'; pumpkins.visible = name === 'spooky';
+        bubbleHelmet.visible = name === 'space'; disco.visible = name === 'disco'; pumpkins.visible = name === 'spooky' || season === 'halloween';
         wetMats().forEach(m => { if (m.userData.dry == null) m.userData.dry = [m.roughness, m.clearcoat]; m.roughness = name === 'rainforest' ? .08 : m.userData.dry[0]; m.clearcoat = name === 'rainforest' ? 1 : m.userData.dry[1]; });
         applyPadColour();
         if (name === 'paris') tween(.6, p => { const s = Math.max(.001, elastic(p)); tache.frog.scale.setScalar(s * 1.45); tache.tad.scale.setScalar(s * .8); });

@@ -543,3 +543,19 @@ small.stars3 i{font-style:normal;color:#D8DCD5}
 /* Splashy Frog */
 .splashy{touch-action:none;-webkit-user-select:none;user-select:none}
 .splashy canvas{display:block;width:100%;height:100%}
+
+/* ---------- seasons ---------- */
+.season-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pond.scene-spooky .season-fx .bats{display:none}
+.season-fx .web{position:absolute;right:0;top:calc(var(--horizon) - 15%);width:20%;max-width:110px;opacity:.6}
+@keyframes fp-dangle{0%,100%{transform:translateY(0)}50%{transform:translateY(26px)}}
+.season-fx .spider{position:absolute;left:12%;top:0;width:30px;animation:fp-dangle 6s ease-in-out infinite}
+.season-fx .spider i{position:absolute;left:50%;bottom:20px;width:1px;height:60vh;background:rgba(255,255,255,.45)}
+.season-fx .spider svg{position:relative;top:calc(var(--horizon) - 4%);width:100%}
+/* Christmas: gentle snow and a string of twinkly lights along the top */
+.season-fx .xsnow{position:absolute;inset:0;background-image:radial-gradient(circle,#fff 0 2px,transparent 2.5px),radial-gradient(circle,rgba(255,255,255,.8) 0 1.4px,transparent 1.8px);background-size:110px 130px,70px 80px;background-position:0 0,35px 20px;animation:fp-xsnow 12s linear infinite;opacity:.75}
+@keyframes fp-xsnow{to{background-position:-30px 390px,15px 260px}}
+.pond.fantasy:not(.scene-candy) .season-fx .xsnow{display:none}
+.season-fx .xlights{position:absolute;left:4%;right:4%;top:env(safe-area-inset-top);height:30px;border-top:2px solid rgba(40,60,40,.6);border-radius:0 0 50% 50%/0 0 30% 30%}
+@keyframes fp-twinkle2{0%,100%{opacity:1;box-shadow:0 0 10px 2px currentColor}50%{opacity:.45;box-shadow:0 0 2px 0 currentColor}}
+.season-fx .xlights i{position:absolute;width:9px;height:13px;margin-left:-4px;border-radius:50% 50% 45% 45%;animation:fp-twinkle2 1.5s ease-in-out infinite}
